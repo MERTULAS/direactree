@@ -1,0 +1,30 @@
+.direactree {
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+} 
+
+.direactree-list {
+  list-style-type: none;
+  margin-left: 8px;
+}
+
+.direactree-item-children .direactree-list {
+  border-left: 1px solid #ccc;
+}
+
+.direactree-item-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.direactree-item-container.selected {
+  background-color: #e0e0e0;
+}
+
+.direactree-item-button {
+  margin-right: 4px;
+}
