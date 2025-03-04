@@ -10,6 +10,12 @@ export default {
     className: { control: 'text' },
     structure: { control: 'object' }, 
     indent: { control: 'number' },
+    showToolbox: { control: 'boolean' },
+    onCreateFolder: { action: 'onCreateFolder' },
+    onCreateFile: { action: 'onCreateFile' },
+    onRename: { action: 'onRename' },
+    onDelete: { action: 'onDelete' },
+    onSave: { action: 'onSave' },
   },
 } as ComponentMeta<typeof Direactree>;
 
@@ -115,4 +121,20 @@ Default.args = {
     },
   ],
   indent: 20,
+  showToolbox: true,
+  onCreateFolder: (nodePath) => {
+    console.log('onCreateFolder', nodePath);
+  },
+  onCreateFile: (nodePath) => {
+    console.log('onCreateFile', nodePath);
+  },
+  onRename: (nodePath) => {
+    console.log('onRename', nodePath);
+  },
+  onDelete: (nodePath) => {
+    console.log('onDelete', nodePath);
+  },
+  onSave: (props) => {
+    console.log('onSave', props);
+  },
 }; 

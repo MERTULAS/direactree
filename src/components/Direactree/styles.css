@@ -28,3 +28,67 @@
 .direactree-item-button {
   margin-right: 4px;
 }
+
+
+.direactree-toolbox {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.direactree-toolbox-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.direactree-toolbox-button:hover {
+  background-color: #f5f5f5;
+  border-color: #aaa;
+}
+
+.direactree-toolbox-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.direactree-item-selected > .direactree-item-container {
+  background-color: #e6f7ff;
+  border-radius: 4px;
+}
+
+.direactree-edit-node {
+  display: flex;
+  gap: 4px;
+  margin: 4px 0;
+}
+
+.direactree-edit-node input {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.direactree-edit-node button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.direactree-edit-node button:hover {
+  background-color: #e0e0e0;
+}
+
+
