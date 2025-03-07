@@ -1,12 +1,23 @@
 {
   "name": "direactree",
   "version": "0.1.0",
-  "description": "React UI component library",
+  "description": "React UI component library for directory tree",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
+  "browser": "dist/index.esm.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.esm.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "files": [
     "dist"
+  ],
+  "sideEffects": [
+    "**/*.css"
   ],
   "scripts": {
     "build": "rollup -c",
@@ -49,8 +60,10 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "rollup": "^2.77.0",
+    "rollup-plugin-css-only": "^4.5.2",
     "rollup-plugin-peer-deps-external": "^2.2.4",
+    "rollup-plugin-postcss": "^4.0.2",
     "rollup-plugin-typescript2": "^0.32.1",
     "typescript": "^4.7.4"
   }
-} 
+}

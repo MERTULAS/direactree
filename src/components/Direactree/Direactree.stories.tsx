@@ -16,6 +16,8 @@ export default {
     onRename: { action: 'onRename' },
     onDelete: { action: 'onDelete' },
     onSave: { action: 'onSave' },
+    toolboxIcons: { control: 'object' },
+    toolboxSticky: { control: 'boolean' }
   },
 } as ComponentMeta<typeof Direactree>;
 

@@ -106,19 +106,23 @@ const DireactreeNode: React.FC<DireactreeNodeProps> = ({
                 </div>
               }
               <div className='direactree-item-children'>
-                {node.children && node.type === 'folder' && expandedNodes[node.id] && node.children.length > 0 && (
-                  <DireactreeNode
-                    node={node.children}
-                    depth={depth + 1}
-                    indent={indent}
-                    selectedNode={selectedNode}
-                    setSelectedNode={setSelectedNode}
-                    nodePath={{ name: node.name, id: node.id, type: node.type, parent: nodePath.id === "" ? null : nodePath }}
-                    selectedAction={selectedAction}
-                    onSave={onSave}
-                    onCancel={onCancel}
-                    setSelectedAction={setSelectedAction}
-                  />
+                {node.children && node.type === 'folder' && (
+                  <div className={`direactree-item-children ${expandedNodes[node.id] ? 'expanded' : 'collapsed'}`}>
+                    {expandedNodes[node.id] && node.children.length > 0 && (
+                      <DireactreeNode
+                        node={node.children}
+                        depth={depth + 1}
+                        indent={indent}
+                        selectedNode={selectedNode}
+                        setSelectedNode={setSelectedNode}
+                        nodePath={{ name: node.name, id: node.id, type: node.type, parent: nodePath.id === "" ? null : nodePath }}
+                        selectedAction={selectedAction}
+                        onSave={onSave}
+                        onCancel={onCancel}
+                        setSelectedAction={setSelectedAction}
+                      />
+                    )}
+                  </div>
                 )}
                 {isCreating && selectedAction?.node?.id === node.id && (
                   <SetNode selectedNode={selectedAction?.node} actionType='create' onCancel={onCancel} onSave={onSave} indent={indent} createType={createType} />
@@ -137,6 +141,13 @@ const DireactreeNode: React.FC<DireactreeNodeProps> = ({
 
 interface ToolboxProps {
   selectedNode: NodePath | null;
+  toolboxIcons?: {
+    createFolder?: React.ReactNode;
+    createFile?: React.ReactNode;
+    rename?: React.ReactNode;
+    delete?: React.ReactNode;
+  };
+  toolboxSticky?: boolean;
   onCreateFolder: ((parentNode: NodePath | null) => void) | undefined;
   onCreateFile: ((parentNode: NodePath | null) => void) | undefined;
   onRename: ((node: NodePath) => void) | undefined;
@@ -145,20 +156,22 @@ interface ToolboxProps {
 
 const Toolbox: React.FC<ToolboxProps> = ({
   selectedNode,
+  toolboxIcons,
+  toolboxSticky,
   onCreateFolder,
   onCreateFile,
   onRename,
   onDelete
 }) => {
   return (
-    <div className="direactree-toolbox">
+    <div className={`direactree-toolbox ${toolboxSticky ? 'direactree-toolbox-sticky' : ''}`}>
       <button
         className="direactree-toolbox-button"
         onClick={() => onCreateFolder && onCreateFolder(selectedNode)}
         title="Create Folder"
         disabled={selectedNode?.type === 'file'}
       >
-        Add Folder
+        {toolboxIcons?.createFolder || <span className="direactree-toolbox-icon">📂</span>}
       </button>
       <button
         className="direactree-toolbox-button"
@@ -166,7 +179,7 @@ const Toolbox: React.FC<ToolboxProps> = ({
         title="Create File"
         disabled={selectedNode?.type === 'file'}
       >
-        Add File
+        {toolboxIcons?.createFile || <span className="direactree-toolbox-icon">📄</span>}
       </button>
       <button
         className="direactree-toolbox-button"
@@ -174,7 +187,7 @@ const Toolbox: React.FC<ToolboxProps> = ({
         disabled={!selectedNode}
         title="Rename"
       >
-        Rename
+        {toolboxIcons?.rename || <span className="direactree-toolbox-icon">✏️</span>}
       </button>
       <button
         className="direactree-toolbox-button"
@@ -182,7 +195,7 @@ const Toolbox: React.FC<ToolboxProps> = ({
         disabled={!selectedNode}
         title="Delete"
       >
-        Delete
+        {toolboxIcons?.delete || <span className="direactree-toolbox-icon">🗑️</span>}
       </button>
     </div>
   );
@@ -195,11 +208,19 @@ interface TreeNode {
   children?: TreeNode[];
   isExpanded?: boolean;
 };
+
 export interface DireactreeProps {
   className?: string;
   structure: TreeNode[];
   indent?: number;
   showToolbox?: boolean;
+  toolboxIcons?: {
+    createFolder?: React.ReactNode;
+    createFile?: React.ReactNode;
+    rename?: React.ReactNode;
+    delete?: React.ReactNode;
+  };
+  toolboxSticky?: boolean;
   onCreateFolder?: (parentNode: NodePath | null) => void;
   onCreateFile?: (parentNode: NodePath | null) => void;
   onRename?: (node: NodePath) => void;
@@ -212,17 +233,19 @@ interface SelectedAction {
   node: NodePath | null;
 };
 
-const Direactree: React.FC<DireactreeProps> = ({
+const Direactree = ({
   className = '',
   structure,
   indent = 20,
   showToolbox = true,
+  toolboxIcons,
+  toolboxSticky = false,
   onCreateFolder,
   onCreateFile,
   onRename,
   onDelete,
   onSave
-}) => {
+}: DireactreeProps): React.ReactElement => {
   const validatedIndent = React.useMemo(() => validateIndent(indent), [indent]);
   const [selectedNode, setSelectedNode] = React.useState<NodePath | null>(null);
   const [selectedAction, setSelectedAction] = React.useState<SelectedAction | null>(null);
@@ -292,10 +315,12 @@ const Direactree: React.FC<DireactreeProps> = ({
       {showToolbox && (
         <Toolbox
           selectedNode={selectedNode}
+          toolboxIcons={toolboxIcons}
           onCreateFolder={handleCreateFolder}
           onCreateFile={handleCreateFile}
           onRename={handleRename}
           onDelete={handleDelete}
+          toolboxSticky={toolboxSticky}
         />
       )}
       <DireactreeNode

@@ -2,6 +2,7 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from 'rollup-plugin-typescript2';
 import peerDepsExternal from 'rollup-plugin-peer-deps-external';
+import postcss from 'rollup-plugin-postcss';
 import pkg from './package.json';
 
 export default {
@@ -12,18 +13,32 @@ export default {
       format: 'cjs',
       exports: 'named',
       sourcemap: true,
+      name: 'direactree'
     },
     {
       file: pkg.module,
       format: 'esm',
       exports: 'named',
-      sourcemap: true,
+      sourcemap: true
     },
   ],
   plugins: [
     peerDepsExternal(),
-    resolve(),
+    resolve({
+      extensions: ['.js', '.jsx', '.ts', '.tsx']
+    }),
     commonjs(),
+    postcss({
+      modules: false,
+      autoModules: false,
+      inject: {
+        insertAt: 'top'
+      },
+      minimize: true,
+      extract: false,
+      extensions: ['.css'],
+      use: ['sass', 'stylus', 'less'],
+    }),
     typescript({
       useTsconfigDeclarationDir: true,
       tsconfigOverride: {
@@ -31,4 +46,5 @@ export default {
       },
     }),
   ],
+  external: ['react', 'react-dom']
 }; 
