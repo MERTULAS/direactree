@@ -25,7 +25,7 @@
 
 .direactree-item-children .direactree-list {
   border-left: 1px solid #e8e8e8;
-  transition: border-color 0.2s ease, transform 0.3s ease;
+  transition: border-color 0.2s ease, transform 0.3s ease, opacity 0.3s ease;
   transform-origin: top;
 }
 
@@ -34,21 +34,21 @@
 }
 
 .direactree-item-children.collapsed {
-  max-height: 0;
+  height: 0;
+  opacity: 0;
 }
 
 .direactree-item-children.expanded {
-  max-height: 1000px;
+  height: auto;
+  opacity: 1;
 }
 
 .direactree-item-children.collapsed .direactree-list {
   transform: scaleY(0);
-  opacity: 0;
 }
 
 .direactree-item-children.expanded .direactree-list {
   transform: scaleY(1);
-  opacity: 1;
 }
 
 .direactree-item-container {
@@ -165,6 +165,7 @@
   transition: all 0.2s ease;
   width: 200px;
   background-color: white;
+  color: #334155;
 }
 
 .direactree-edit-node input:focus {

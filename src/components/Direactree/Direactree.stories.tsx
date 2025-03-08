@@ -16,6 +16,7 @@ export default {
     onRename: { action: 'onRename' },
     onDelete: { action: 'onDelete' },
     onSave: { action: 'onSave' },
+    onSelectedNodeChange: { action: 'onSelectedNodeChange' },
     toolboxIcons: { control: 'object' },
     toolboxSticky: { control: 'boolean' }
   },
@@ -139,4 +140,7 @@ Default.args = {
   onSave: (props) => {
     console.log('onSave', props);
   },
+  onSelectedNodeChange: (nodePath) => {
+    console.log('onSelectedNodeChange', nodePath);
+  }
 }; 

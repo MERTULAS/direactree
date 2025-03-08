@@ -11,7 +11,7 @@ function validateIndent(n: number): IndentSize {
   return n as IndentSize;
 }
 
-interface SaveProps {
+export interface SaveProps {
   newName: string;
   selectedNode: NodePath | null;
   actionType: 'create' | 'edit';
@@ -38,13 +38,13 @@ const SetNode = ({
   return (
     <div className="direactree-edit-node" style={{ paddingLeft: `${actionType === 'create' ? indent : 0}px`, marginLeft: actionType === 'create' ? '8px' : '0px' }}>
       <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
-      <button onClick={() => onSave({ newName: name, selectedNode: selectedNode || null, actionType, createType })} disabled={name.length === 0 || name === selectedNode?.name}>Save</button>
+      <button onClick={() => onSave({ newName: name, selectedNode: selectedNode || null, actionType, createType })} disabled={name.length === 0 || (actionType === 'edit' && name === selectedNode?.name)}>Save</button>
       <button onClick={onCancel}>Cancel</button>
     </div>
   );
 }
 
-type NodePath = {
+export type NodePath = {
   name: string;
   id: string;
   type: 'file' | 'folder';
@@ -201,7 +201,7 @@ const Toolbox: React.FC<ToolboxProps> = ({
   );
 };
 
-interface TreeNode {
+export interface TreeNode {
   id: string;
   name: string;
   type: 'file' | 'folder';
@@ -226,6 +226,7 @@ export interface DireactreeProps {
   onRename?: (node: NodePath) => void;
   onDelete?: (node: NodePath) => void;
   onSave?: (props: SaveProps) => void;
+  onSelectedNodeChange?: (node: NodePath) => void;
 };
 
 interface SelectedAction {
@@ -244,7 +245,8 @@ const Direactree = ({
   onCreateFile,
   onRename,
   onDelete,
-  onSave
+  onSave,
+  onSelectedNodeChange
 }: DireactreeProps): React.ReactElement => {
   const validatedIndent = React.useMemo(() => validateIndent(indent), [indent]);
   const [selectedNode, setSelectedNode] = React.useState<NodePath | null>(null);
@@ -280,6 +282,10 @@ const Direactree = ({
       document.removeEventListener('mousedown', handleOutsideClick);
     };
   }, [selectedAction]);
+
+  React.useEffect(() => {
+    onSelectedNodeChange && selectedNode && onSelectedNodeChange(selectedNode);
+  }, [selectedNode]);
 
   const handleCreateFolder = (node: NodePath | null) => {
     setSelectedAction({ action: 'createFolder', node });
