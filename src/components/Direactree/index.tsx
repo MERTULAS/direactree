@@ -7,6 +7,9 @@ function validateIndent(n: number): IndentSize {
   if (n < 8) {
     console.warn('indent is must be 8 and above. 8 will be used automatically.');
     return 8 as IndentSize;
+  } else if (n > 50) {
+    console.warn('indent is must be 50 and below. 50 will be used automatically.');
+    return 50 as IndentSize;
   }
   return n as IndentSize;
 }
@@ -62,6 +65,9 @@ interface DireactreeNodeProps {
   onSave: (props: SaveProps) => void;
   onCancel: () => void;
   setSelectedAction: (action: SelectedAction | null) => void;
+  onNodeMove?: (node: TreeNode, target: TreeNode) => void;
+  allowDragAndDrop?: boolean;
+  isAllExpanded?: boolean;
 }
 
 const DireactreeNode: React.FC<DireactreeNodeProps> = ({
@@ -74,57 +80,142 @@ const DireactreeNode: React.FC<DireactreeNodeProps> = ({
   selectedAction,
   onSave,
   onCancel,
-  setSelectedAction
+  setSelectedAction,
+  onNodeMove,
+  allowDragAndDrop = true,
+  isAllExpanded = false
 }) => {
 
-  const [expandedNodes, setExpandedNodes] = React.useState<Record<string, boolean>>({});
+  const [expandedNodes, setExpandedNodes] = React.useState<Record<string, boolean>>(isAllExpanded ? Object.fromEntries(node.map(n => [n.id, true])) : {});
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [dragOverNodeId, setDragOverNodeId] = React.useState<string | null>(null);
   const safeIndent = indent < 8 ? 8 : indent;
+
+  React.useEffect(() => {
+    if (isAllExpanded) {
+      setExpandedNodes(Object.fromEntries(node.map(n => [n.id, true])));
+    } else {
+      setExpandedNodes({});
+    }
+  }, [isAllExpanded, node]);
 
   const isCreating = selectedAction?.action === 'createFolder' || selectedAction?.action === 'createFile';
   const createType = selectedAction?.action === 'createFolder' ? 'folder' : 'file';
 
+  const isChildNode = (sourceNode: TreeNode, targetNode: TreeNode): boolean => {
+
+    for (const child of sourceNode.children || []) {
+      if (child.id === targetNode.id) {
+        return true;
+      } else if (child.children && child.children.length > 0) {
+        if (isChildNode(child, targetNode)) return true;
+      }
+    }
+    return false;
+  };
+
+  const isMoveable = (sourceNode: TreeNode, targetNode: TreeNode): boolean => {
+    if (targetNode.type === "file") return false;
+
+    if (targetNode.children && targetNode.children.some(child => child.id === sourceNode.id)) return false;
+
+    if (sourceNode.type === "file" || sourceNode.children === undefined || sourceNode.children.length === 0) return true;
+
+
+    if (isChildNode(sourceNode, targetNode)) return false;
+
+    return true;
+  }
+
   return (
     <>
       <ul className='direactree-list' style={{ paddingLeft: `${depth === 0 ? 0 : safeIndent}px` }}>
-        {node.map((node) => {
+        {node.map((nodeChild) => {
 
-          const isSelected = selectedNode && selectedNode.id === node.id;
-          const isRenaming = selectedAction?.action === 'rename' && selectedAction?.node?.id === node.id;
+          const isSelected = selectedNode && selectedNode.id === nodeChild.id;
+          const isRenaming = selectedAction?.action === 'rename' && selectedAction?.node?.id === nodeChild.id;
 
           return (
             <li
-              className={`direactree-item ${isSelected ? 'direactree-item-selected' : ''}`}
-              key={node.id}
+              draggable={allowDragAndDrop}
+              className={`direactree-item ${isSelected ? 'direactree-item-selected' : ''} ${dragOverNodeId === nodeChild.id ? 'direactree-item-dragover' : ''}`}
+              key={nodeChild.id}
+              onDragStart={(e) => {
+                e.stopPropagation();
+                setIsDragging(true);
+                e.dataTransfer.setData('node', JSON.stringify(nodeChild));
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              onDragEnd={() => {
+                setIsDragging(false);
+              }}
+              onDragOver={(e) => {
+                if (nodeChild.type === 'folder') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.dataTransfer.dropEffect = 'move';
+                  setDragOverNodeId(nodeChild.id);
+                }
+              }}
+              onDragLeave={() => {
+                setDragOverNodeId(null);
+              }}
+              onDrop={(e) => {
+                setDragOverNodeId(null);
+                if (nodeChild.type === 'folder') {
+                  e.preventDefault();
+                  e.stopPropagation();
+
+                  try {
+                    const sourceNode = JSON.parse(e.dataTransfer.getData('node'));
+                    if (sourceNode.id !== nodeChild.id && isMoveable(sourceNode, nodeChild) && onNodeMove) {
+                      if (nodeChild.children && !expandedNodes[nodeChild.id]) {
+                        setExpandedNodes({
+                          ...expandedNodes,
+                          [nodeChild.id]: true
+                        });
+                      }
+
+                      onNodeMove(sourceNode, nodeChild);
+                    }
+                  } catch (error) {
+                    console.error('Drop işlemi sırasında hata oluştu:', error);
+                  }
+                }
+              }}
             >
               {isRenaming ?
                 <SetNode selectedNode={selectedAction?.node} actionType='edit' onCancel={onCancel} onSave={onSave} indent={indent} /> :
-                <div className={`direactree-item-container ${selectedNode?.id === node.id ? 'selected' : ''}`}>
-                  <span className='direactree-item-button' onClick={() => node.type === 'folder' && setExpandedNodes({ ...expandedNodes, [node.id]: !expandedNodes[node.id] })}>
-                    {node.type === 'folder' && (expandedNodes[node.id] ? '▼' : '►')}
+                <div className={`direactree-item-container ${selectedNode?.id === nodeChild.id ? 'selected' : ''}`}>
+                  <span className='direactree-item-button' onClick={() => nodeChild.type === 'folder' && setExpandedNodes({ ...expandedNodes, [nodeChild.id]: !expandedNodes[nodeChild.id] })}>
+                    {nodeChild.type === 'folder' && (expandedNodes[nodeChild.id] ? '▼' : '►')}
                   </span>
-                  <span className='direactree-item-name' onClick={() => setSelectedNode({ name: node.name, id: node.id, type: node.type, parent: nodePath.id === "" ? null : nodePath })}>{node.name}</span>
+                  <span className='direactree-item-name' onClick={() => setSelectedNode({ name: nodeChild.name, id: nodeChild.id, type: nodeChild.type, parent: nodePath.id === "" ? null : nodePath })}>{nodeChild.name}</span>
                 </div>
               }
               <div className='direactree-item-children'>
-                {node.children && node.type === 'folder' && (
-                  <div className={`direactree-item-children ${expandedNodes[node.id] ? 'expanded' : 'collapsed'}`}>
-                    {expandedNodes[node.id] && node.children.length > 0 && (
+                {nodeChild.children && nodeChild.type === 'folder' && (
+                  <div className={`direactree-item-children ${expandedNodes[nodeChild.id] ? 'expanded' : 'collapsed'}`}>
+                    {expandedNodes[nodeChild.id] && nodeChild.children.length > 0 && (
                       <DireactreeNode
-                        node={node.children}
+                        node={nodeChild.children}
                         depth={depth + 1}
                         indent={indent}
                         selectedNode={selectedNode}
                         setSelectedNode={setSelectedNode}
-                        nodePath={{ name: node.name, id: node.id, type: node.type, parent: nodePath.id === "" ? null : nodePath }}
+                        nodePath={{ name: nodeChild.name, id: nodeChild.id, type: nodeChild.type, parent: nodePath.id === "" ? null : nodePath }}
                         selectedAction={selectedAction}
                         onSave={onSave}
                         onCancel={onCancel}
                         setSelectedAction={setSelectedAction}
+                        onNodeMove={onNodeMove}
+                        allowDragAndDrop={allowDragAndDrop}
+                        isAllExpanded={isAllExpanded}
                       />
                     )}
                   </div>
                 )}
-                {isCreating && selectedAction?.node?.id === node.id && (
+                {isCreating && selectedAction?.node?.id === nodeChild.id && (
                   <SetNode selectedNode={selectedAction?.node} actionType='create' onCancel={onCancel} onSave={onSave} indent={indent} createType={createType} />
                 )}
               </div>
@@ -139,14 +230,16 @@ const DireactreeNode: React.FC<DireactreeNodeProps> = ({
   );
 };
 
+export interface ToolboxIcons {
+  createFolder?: React.ReactNode;
+  createFile?: React.ReactNode;
+  rename?: React.ReactNode;
+  delete?: React.ReactNode;
+}
+
 interface ToolboxProps {
   selectedNode: NodePath | null;
-  toolboxIcons?: {
-    createFolder?: React.ReactNode;
-    createFile?: React.ReactNode;
-    rename?: React.ReactNode;
-    delete?: React.ReactNode;
-  };
+  toolboxIcons?: ToolboxIcons;
   toolboxSticky?: boolean;
   onCreateFolder: ((parentNode: NodePath | null) => void) | undefined;
   onCreateFile: ((parentNode: NodePath | null) => void) | undefined;
@@ -157,7 +250,7 @@ interface ToolboxProps {
 const Toolbox: React.FC<ToolboxProps> = ({
   selectedNode,
   toolboxIcons,
-  toolboxSticky,
+  toolboxSticky = false,
   onCreateFolder,
   onCreateFile,
   onRename,
@@ -214,25 +307,27 @@ export interface DireactreeProps {
   structure: TreeNode[];
   indent?: number;
   showToolbox?: boolean;
-  toolboxIcons?: {
-    createFolder?: React.ReactNode;
-    createFile?: React.ReactNode;
-    rename?: React.ReactNode;
-    delete?: React.ReactNode;
-  };
+  toolboxIcons?: ToolboxIcons;
   toolboxSticky?: boolean;
+  allowDragAndDrop?: boolean;
+  isAllExpanded?: boolean;
+  action?: Action | null;
   onCreateFolder?: (parentNode: NodePath | null) => void;
   onCreateFile?: (parentNode: NodePath | null) => void;
   onRename?: (node: NodePath) => void;
   onDelete?: (node: NodePath) => void;
   onSave?: (props: SaveProps) => void;
   onSelectedNodeChange?: (node: NodePath) => void;
+  onNodeMove?: (node: TreeNode, target: TreeNode) => void;
 };
 
+export type Action = 'createFolder' | 'createFile' | 'rename' | 'delete';
+
 interface SelectedAction {
-  action: 'createFolder' | 'createFile' | 'rename' | 'delete';
+  action: Action;
   node: NodePath | null;
 };
+
 
 const Direactree = ({
   className = '',
@@ -241,17 +336,27 @@ const Direactree = ({
   showToolbox = true,
   toolboxIcons,
   toolboxSticky = false,
+  allowDragAndDrop = true,
+  isAllExpanded = false,
+  action,
   onCreateFolder,
   onCreateFile,
   onRename,
   onDelete,
   onSave,
-  onSelectedNodeChange
+  onSelectedNodeChange,
+  onNodeMove,
 }: DireactreeProps): React.ReactElement => {
   const validatedIndent = React.useMemo(() => validateIndent(indent), [indent]);
   const [selectedNode, setSelectedNode] = React.useState<NodePath | null>(null);
   const [selectedAction, setSelectedAction] = React.useState<SelectedAction | null>(null);
   const direactreeRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (action) {
+      setSelectedAction({ action, node: selectedNode });
+    }
+  }, [action]);
 
   React.useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -316,6 +421,10 @@ const Direactree = ({
     setSelectedAction(null);
   };
 
+  const handleNodeMove = (sourceNode: TreeNode, targetNode: TreeNode) => {
+    onNodeMove && onNodeMove(sourceNode, targetNode);
+  };
+
   return (
     <div className={`direactree ${className}`} ref={direactreeRef}>
       {showToolbox && (
@@ -339,9 +448,30 @@ const Direactree = ({
         onSave={handleSave}
         onCancel={handleCancel}
         setSelectedAction={setSelectedAction}
+        onNodeMove={handleNodeMove}
+        allowDragAndDrop={allowDragAndDrop}
+        isAllExpanded={isAllExpanded}
       />
     </div>
   );
 };
 
-export default Direactree; 
+export default Direactree;
+
+const styles = document.createElement('style');
+styles.innerHTML = `
+  .direactree-item-dragover {
+    background-color: rgba(0, 120, 215, 0.1);
+    border: 1px dashed #0078d7;
+    border-radius: 4px;
+  }
+  
+  .direactree-item[draggable=true] {
+    cursor: grab;
+  }
+  
+  .direactree-item[draggable=true]:active {
+    cursor: grabbing;
+  }
+`;
+document.head.appendChild(styles); 

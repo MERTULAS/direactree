@@ -17,8 +17,12 @@ export default {
     onDelete: { action: 'onDelete' },
     onSave: { action: 'onSave' },
     onSelectedNodeChange: { action: 'onSelectedNodeChange' },
+    onNodeMove: { action: 'onNodeMove' },
     toolboxIcons: { control: 'object' },
-    toolboxSticky: { control: 'boolean' }
+    toolboxSticky: { control: 'boolean' },
+    allowDragAndDrop: { control: 'boolean' },
+    isAllExpanded: { control: 'boolean' },
+    action: { control: 'text' }
   },
 } as ComponentMeta<typeof Direactree>;
 
@@ -142,5 +146,12 @@ Default.args = {
   },
   onSelectedNodeChange: (nodePath) => {
     console.log('onSelectedNodeChange', nodePath);
-  }
+  },
+  onNodeMove: (nodePath, targetNodePath) => {
+    console.log('onNodeMove', nodePath, targetNodePath);
+  },
+  toolboxSticky: false,
+  allowDragAndDrop: true,
+  isAllExpanded: false,
+  action: null
 }; 
