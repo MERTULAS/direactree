@@ -209,4 +209,19 @@
   }
 }
 
+/* Drag and Drop Styles */
+.direactree-item-dragover {
+  background-color: rgba(0, 120, 215, 0.1);
+  border: 1px dashed #0078d7;
+  border-radius: 4px;
+}
+
+.direactree-item[draggable=true] {
+  cursor: grab;
+}
+
+.direactree-item[draggable=true]:active {
+  cursor: grabbing;
+}
+
 

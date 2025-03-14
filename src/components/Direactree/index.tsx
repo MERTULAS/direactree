@@ -86,8 +86,7 @@ const DireactreeNode: React.FC<DireactreeNodeProps> = ({
   isAllExpanded = false
 }) => {
 
-  const [expandedNodes, setExpandedNodes] = React.useState<Record<string, boolean>>(isAllExpanded ? Object.fromEntries(node.map(n => [n.id, true])) : {});
-  const [isDragging, setIsDragging] = React.useState(false);
+  const [expandedNodes, setExpandedNodes] = React.useState<Record<string, boolean>>({});
   const [dragOverNodeId, setDragOverNodeId] = React.useState<string | null>(null);
   const safeIndent = indent < 8 ? 8 : indent;
 
@@ -103,7 +102,6 @@ const DireactreeNode: React.FC<DireactreeNodeProps> = ({
   const createType = selectedAction?.action === 'createFolder' ? 'folder' : 'file';
 
   const isChildNode = (sourceNode: TreeNode, targetNode: TreeNode): boolean => {
-
     for (const child of sourceNode.children || []) {
       if (child.id === targetNode.id) {
         return true;
@@ -116,14 +114,9 @@ const DireactreeNode: React.FC<DireactreeNodeProps> = ({
 
   const isMoveable = (sourceNode: TreeNode, targetNode: TreeNode): boolean => {
     if (targetNode.type === "file") return false;
-
     if (targetNode.children && targetNode.children.some(child => child.id === sourceNode.id)) return false;
-
     if (sourceNode.type === "file" || sourceNode.children === undefined || sourceNode.children.length === 0) return true;
-
-
     if (isChildNode(sourceNode, targetNode)) return false;
-
     return true;
   }
 
@@ -142,12 +135,8 @@ const DireactreeNode: React.FC<DireactreeNodeProps> = ({
               key={nodeChild.id}
               onDragStart={(e) => {
                 e.stopPropagation();
-                setIsDragging(true);
                 e.dataTransfer.setData('node', JSON.stringify(nodeChild));
                 e.dataTransfer.effectAllowed = 'move';
-              }}
-              onDragEnd={() => {
-                setIsDragging(false);
               }}
               onDragOver={(e) => {
                 if (nodeChild.type === 'folder') {
@@ -317,7 +306,7 @@ export interface DireactreeProps {
   onRename?: (node: NodePath) => void;
   onDelete?: (node: NodePath) => void;
   onSave?: (props: SaveProps) => void;
-  onSelectedNodeChange?: (node: NodePath) => void;
+  onSelectedNodeChange?: (node: NodePath | null) => void;
   onNodeMove?: (node: TreeNode, target: TreeNode) => void;
 };
 
@@ -389,7 +378,7 @@ const Direactree = ({
   }, [selectedAction]);
 
   React.useEffect(() => {
-    onSelectedNodeChange && selectedNode && onSelectedNodeChange(selectedNode);
+    onSelectedNodeChange && onSelectedNodeChange(selectedNode);
   }, [selectedNode]);
 
   const handleCreateFolder = (node: NodePath | null) => {
@@ -456,22 +445,4 @@ const Direactree = ({
   );
 };
 
-export default Direactree;
-
-const styles = document.createElement('style');
-styles.innerHTML = `
-  .direactree-item-dragover {
-    background-color: rgba(0, 120, 215, 0.1);
-    border: 1px dashed #0078d7;
-    border-radius: 4px;
-  }
-  
-  .direactree-item[draggable=true] {
-    cursor: grab;
-  }
-  
-  .direactree-item[draggable=true]:active {
-    cursor: grabbing;
-  }
-`;
-document.head.appendChild(styles); 
+export default Direactree; 
