@@ -99,7 +99,7 @@ function App() {
 
 ### For Next.js 13+ Applications
 
-### In Next.js 13 and later versions, all components are considered Server Components by default. Since Direactree is a Client Component, we offer two different usage methods:
+### In Next.js 13 and later versions, all components are considered Server Components by default. Since Direactree is a Client Component, you have two different usage methods:
 
 #### 1. Using Special Next.js Import (Recommended)
 
