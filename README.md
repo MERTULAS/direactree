@@ -2,8 +2,8 @@
 
 React UI Component for directory structure.
 
-### Documentation Page
-https://direactree-documentation.vercel.app/
+## Documentation Page
+### https://direactree-documentation.vercel.app/
 
 ## Installation
 
