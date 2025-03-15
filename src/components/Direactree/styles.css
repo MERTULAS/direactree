@@ -1,0 +1,241 @@
+.direactree {
+  padding: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #2c3e50;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+} 
+
+.direactree-loading {
+  padding: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  color: #6c757d;
+  text-align: center;
+  font-size: 14px;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.direactree:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.direactree-list {
+  list-style-type: none;
+  margin-left: 8px;
+  position: relative;
+}
+
+.direactree-item-children {
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.direactree-item-children .direactree-list {
+  border-left: 1px solid #e8e8e8;
+  transition: border-color 0.2s ease, transform 0.3s ease, opacity 0.3s ease;
+  transform-origin: top;
+}
+
+.direactree-item-children .direactree-list:hover {
+  border-left-color: #cbd5e1;
+}
+
+.direactree-item-children.collapsed {
+  height: 0;
+  opacity: 0;
+}
+
+.direactree-item-children.expanded {
+  height: auto;
+  opacity: 1;
+}
+
+.direactree-item-children.collapsed .direactree-list {
+  transform: scaleY(0);
+}
+
+.direactree-item-children.expanded .direactree-list {
+  transform: scaleY(1);
+}
+
+.direactree-item-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 4px;
+  padding: 6px 0;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.direactree-item-container:hover {
+  background-color: #f8fafc;
+}
+
+.direactree-item-container.selected {
+  background-color: #f1f5f9;
+}
+
+.direactree-item-button {
+  margin-right: 8px;
+  color: #64748b;
+  font-size: 12px;
+  transition: transform 0.2s ease;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.direactree-item-container:hover .direactree-item-button {
+  color: #475569;
+}
+
+.direactree-item-name {
+  color: #334155;
+  font-size: 14px;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.direactree-item-container:hover .direactree-item-name {
+  color: #1e293b;
+}
+
+.direactree-toolbox {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background-color: #f8fafc;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.direactree-toolbox-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.direactree-toolbox-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  width: 36px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  background-color: white;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 8px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.direactree-toolbox-button:hover {
+  background-color: #f9f9f9;
+}
+
+.direactree-toolbox-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.direactree-item-selected > .direactree-item-container {
+  background-color: #e0f2fe;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.direactree-edit-node {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+  animation: fadeIn 0.2s ease;
+}
+
+.direactree-edit-node input {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  width: 200px;
+  background-color: white;
+  color: #334155;
+}
+
+.direactree-edit-node input:focus {
+  outline: none;
+  box-shadow: 0 0 5px 3px rgba(150, 150, 150, 0.1);
+}
+
+.direactree-edit-node button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  background-color: #f8fafc;
+  color: #334155;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.direactree-edit-node button:first-of-type {
+  background-color: #616161;
+  color: white;
+}
+
+.direactree-edit-node button:first-of-type:hover {
+  background-color: #616161;
+}
+
+.direactree-edit-node button:last-of-type:hover {
+  background-color: #e2e8f0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Drag and Drop Styles */
+.direactree-item-dragover {
+  background-color: rgba(0, 120, 215, 0.1);
+  border: 1px dashed #0078d7;
+  border-radius: 4px;
+}
+
+.direactree-item[draggable=true] {
+  cursor: grab;
+}
+
+.direactree-item[draggable=true]:active {
+  cursor: grabbing;
+}
+
+
