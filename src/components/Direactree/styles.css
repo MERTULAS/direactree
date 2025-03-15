@@ -8,6 +8,20 @@
   transition: all 0.2s ease;
 } 
 
+.direactree-loading {
+  padding: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  color: #6c757d;
+  text-align: center;
+  font-size: 14px;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .direactree:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }

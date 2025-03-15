@@ -22,7 +22,6 @@ export default {
     toolboxSticky: { control: 'boolean' },
     allowDragAndDrop: { control: 'boolean' },
     isAllExpanded: { control: 'boolean' },
-    action: { control: 'text' }
   },
 } as ComponentMeta<typeof Direactree>;
 
@@ -152,6 +151,5 @@ Default.args = {
   },
   toolboxSticky: false,
   allowDragAndDrop: true,
-  isAllExpanded: false,
-  action: null
+  isAllExpanded: false
 }; 

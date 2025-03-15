@@ -11,6 +11,11 @@
       "require": "./dist/index.js",
       "import": "./dist/index.esm.js",
       "types": "./dist/index.d.ts"
+    },
+    "./next": {
+      "require": "./dist/next.js",
+      "import": "./dist/next.esm.js",
+      "types": "./dist/index.d.ts"
     }
   },
   "files": [
