@@ -1,11 +1,19 @@
 {
   "name": "direactree",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React UI component library for directory tree",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "browser": "dist/index.esm.js",
   "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mertulas/direactree.git"
+  },
+  "homepage": "https://github.com/mertulas/direactree",
+  "bugs": {
+    "url": "https://github.com/mertulas/direactree/issues"
+  },
   "exports": {
     ".": {
       "require": "./dist/index.js",
@@ -35,9 +43,14 @@
   "keywords": [
     "react",
     "component",
-    "ui"
+    "ui",
+    "directory",
+    "tree",
+    "nextjs",
+    "react-ui",
+    "directory-tree"
   ],
-  "author": "",
+  "author": "Mert ULAS",
   "license": "MIT",
   "peerDependencies": {
     "react": ">=16.8.0",
