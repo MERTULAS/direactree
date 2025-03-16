@@ -1,6 +1,10 @@
+![image](https://github.com/user-attachments/assets/4635c9c8-e759-4985-90fd-27c5c929585a)
+
 # Direactree
 
 React UI Component for directory structure.
+
+https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHd5YXAybmxrOWk4ejd3aXBtanVjcmExYTlqYjRyNzVmZzJ5OHF1MyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/5DxL9HbwRUx5Xluk52/giphy.gif
 
 ## Documentation Page
 ### https://direactree-documentation.vercel.app/
