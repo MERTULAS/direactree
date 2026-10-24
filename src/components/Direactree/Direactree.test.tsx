@@ -593,7 +593,7 @@ describe('Direactree', () => {
     expect(anchor).toHaveClass('direactree-item-anchor');
     expect(panel.closest('.direactree-overlay')).not.toBeNull();
     expect(panel.closest('.direactree-viewport')).toBeNull();
-    expect(anchor?.nextElementSibling).toHaveClass('direactree-item-children');
+    expect(row.closest('li')?.nextElementSibling).toContainElement(screen.getByRole('treeitem', { name: 'Folder 1.1' }));
     expect(screen.getByRole('treeitem', { name: 'Folder 1.1' })).toBeInTheDocument();
     expect(document.querySelector('[inert]')).not.toBeInTheDocument();
     expect(document.querySelector('.direactree-background-locked')).not.toBeInTheDocument();

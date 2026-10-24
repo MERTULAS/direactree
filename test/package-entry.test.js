@@ -5,6 +5,14 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 
+// The component is a forwardRef object, so check for a React component instead of a function.
+const checkExports = [
+  "if (!m.default || typeof m.default.render !== 'function') throw new Error('default export is not a component');",
+  "for (const name of ['useDireactree', 'validateName', 'moveNode', 'applySave', 'removeNode']) {",
+  "  if (typeof m[name] !== 'function') throw new Error(name + ' export missing');",
+  "}",
+].join(' ');
+
 function readFirstLine(file) {
   return fs.readFileSync(path.join(root, file), 'utf8').split(/\r?\n/, 1)[0];
 }
@@ -26,11 +34,11 @@ describe('package entrypoints', () => {
     fs.symlinkSync(root, link, 'junction');
 
     try {
-      execFileSync(process.execPath, ['-e', "const m = require('direactree'); if (typeof m.default !== 'function') throw new Error('CJS default export missing');"], {
+      execFileSync(process.execPath, ['-e', `const m = require('direactree'); ${checkExports}`], {
         cwd: smokeDir,
         stdio: 'pipe',
       });
-      execFileSync(process.execPath, ['--input-type=module', '-e', "const m = await import('direactree'); if (typeof m.default !== 'function') throw new Error('ESM default export missing');"], {
+      execFileSync(process.execPath, ['--input-type=module', '-e', `const m = await import('direactree'); ${checkExports}`], {
         cwd: smokeDir,
         stdio: 'pipe',
       });
@@ -77,7 +85,19 @@ describe('package entrypoints', () => {
       },
       files: ['check.tsx'],
     }));
-    fs.writeFileSync(path.join(smokeDir, 'check.tsx'), "import Direactree from 'direactree/next';\nexport const Tree = Direactree;\n");
+    fs.writeFileSync(path.join(smokeDir, 'check.tsx'), [
+      "import * as React from 'react';",
+      "import Direactree, { useDireactree, type DireactreeHandle, type TreeNode } from 'direactree/next';",
+      "type Git = { status: 'M' | 'A' };",
+      "const initial: TreeNode<Git>[] = [{ id: 'a', name: 'a.ts', type: 'file', data: { status: 'M' } }];",
+      'export function Tree() {',
+      '  const tree = useDireactree(initial);',
+      '  const ref = React.useRef<DireactreeHandle>(null);',
+      '  return <Direactree ref={ref} structure={tree.structure} onSave={tree.save} onDelete={tree.remove} onNodeMove={tree.move}',
+      '    renderBadge={(node) => node.data?.status} />;',
+      '}',
+      '',
+    ].join('\n'));
 
     try {
       execFileSync(process.execPath, [

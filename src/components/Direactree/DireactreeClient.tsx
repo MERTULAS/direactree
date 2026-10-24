@@ -1,6 +1,87 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './styles.css';
+import type {
+  ContextMenuEntry,
+  ContextMenuItem,
+  DireactreeHandle,
+  DireactreeMessages,
+  DireactreeMutation,
+  DireactreeProps,
+  DireactreeTheme,
+  NodePath,
+  NodePermissions,
+  NodeType,
+  RevealOptions,
+  RowRenderState,
+  SaveProps,
+  ToolboxAction,
+  ToolboxIcons,
+  TreeNode,
+} from './types';
+import { applyMessage, defaultDireactreeMessages } from './messages';
+import {
+  collectAllFolderIds,
+  collectInitialExpanded,
+  findNode,
+  findNodePath,
+  getAncestorIds,
+  isMoveable,
+  locateNode,
+  flattenVisible,
+  searchTree,
+  type VisibleItem,
+} from './treeUtils';
+import { defaultNameRules, hasNameConflict, validateName as checkName } from './validation';
+
+export type {
+  ContextMenuEntry,
+  ContextMenuItem,
+  DireactreeHandle,
+  DireactreeMessages,
+  DireactreeMutation,
+  DireactreeProps,
+  DireactreeTheme,
+  LabelRenderState,
+  NameRules,
+  NameValidationContext,
+  NodePath,
+  NodePermissions,
+  NodeType,
+  RevealOptions,
+  RowRenderState,
+  SaveProps,
+  ToolboxAction,
+  ToolboxIcons,
+  TreeNode,
+  VirtualizedOptions,
+} from './types';
+export { defaultDireactreeMessages } from './messages';
+export { defaultNameRules, hasNameConflict, validateName } from './validation';
+export type { NameErrorCode, NameValidationResult, ValidateNameOptions } from './validation';
+export {
+  applySave,
+  compareFoldersFirst,
+  createNodeId,
+  findNode,
+  findNodePath,
+  getAncestorIds,
+  insertNode,
+  isMoveable,
+  locateNode,
+  moveNode,
+  removeNode,
+  renameNode,
+  setChildren,
+  sortChildren,
+  updateNode,
+} from './treeUtils';
+export type { ApplySaveOptions, NodeCompare, NodeLocation } from './treeUtils';
+export { useDireactree } from './useDireactree';
+export type { SaveOverrides, UseDireactreeOptions, UseDireactreeResult } from './useDireactree';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyNode = TreeNode<any>;
 
 function validateIndent(n: number): number {
   if (n < 8) {
@@ -14,137 +95,6 @@ function validateIndent(n: number): number {
   return n;
 }
 
-export interface SaveProps {
-  newName: string;
-  selectedNode: NodePath | null;
-  actionType: 'create' | 'edit';
-  createType?: 'folder' | 'file';
-}
-
-export type NodePath = {
-  name: string;
-  id: string;
-  type: 'file' | 'folder';
-  parent: NodePath | null;
-}
-
-export interface TreeNode {
-  /** Stable id. Must be unique across the whole tree. */
-  id: string;
-  name: string;
-  type: 'file' | 'folder';
-  children?: TreeNode[];
-  /**
-   * Initial open state for a folder. Read only when the tree first mounts.
-   * Later open and closed state is kept by the component.
-   * While `isAllExpanded` is true, every folder is shown open.
-   */
-  isExpanded?: boolean;
-}
-
-export interface ToolboxIcons {
-  createFolder?: React.ReactNode;
-  createFile?: React.ReactNode;
-  rename?: React.ReactNode;
-  delete?: React.ReactNode;
-}
-
-export type DireactreeMutation = 'save' | 'delete' | 'move';
-
-export type DireactreeTheme = 'system' | 'light' | 'dark';
-
-export interface DireactreeMessages {
-  directoryTree: string;
-  createFolder: string;
-  createFile: string;
-  rename: string;
-  delete: string;
-  save: string;
-  cancel: string;
-  newFolderName: string;
-  newFileName: string;
-  newItemName: string;
-  /** `{name}` is replaced with the node name. */
-  deleteTitle: string;
-  deleteFolderDescription: string;
-  deleteFileDescription: string;
-  deleting: string;
-  confirmDelete: string;
-  actionFailed: string;
-}
-
-export const defaultDireactreeMessages: DireactreeMessages = {
-  directoryTree: 'Directory tree',
-  createFolder: 'Create Folder',
-  createFile: 'Create File',
-  rename: 'Rename',
-  delete: 'Delete',
-  save: 'Save',
-  cancel: 'Cancel',
-  newFolderName: 'New folder name',
-  newFileName: 'New file name',
-  newItemName: 'New item name',
-  deleteTitle: 'Delete {name}?',
-  deleteFolderDescription: 'This folder and its contents will be deleted.',
-  deleteFileDescription: 'This file will be deleted.',
-  deleting: 'Deleting…',
-  confirmDelete: 'Confirm delete',
-  actionFailed: 'Something went wrong.',
-};
-
-function applyMessage(template: string, values: Record<string, string>): string {
-  return template.replace(/\{(\w+)\}/g, (_, key: string) => (
-    Object.prototype.hasOwnProperty.call(values, key) ? values[key] : `{${key}}`
-  ));
-}
-
-export interface DireactreeProps {
-  className?: string;
-  /** `system` follows the OS color scheme. `light` and `dark` stay fixed. */
-  theme?: DireactreeTheme;
-  /** Merged onto the root after the theme `color-scheme` value. */
-  style?: React.CSSProperties;
-  /** Controlled tree. The component never copies or mutates this list. */
-  structure: TreeNode[];
-  indent?: number;
-  showToolbox?: boolean;
-  toolboxIcons?: ToolboxIcons;
-  toolboxSticky?: boolean;
-  allowDragAndDrop?: boolean;
-  /**
-   * While true, every current and newly added folder is shown open.
-   * Changing this from true to false closes every folder.
-   */
-  isAllExpanded?: boolean;
-  confirmDelete?: boolean;
-  /** Partial copy overrides. Missing keys keep the English defaults. */
-  messages?: Partial<DireactreeMessages>;
-  /**
-   * Lifecycle notice that the create-folder editor opened.
-   * The create request itself is sent from `onSave`.
-   */
-  onCreateFolder?: (parentNode: NodePath | null) => void;
-  /**
-   * Lifecycle notice that the create-file editor opened.
-   * The create request itself is sent from `onSave`.
-   */
-  onCreateFile?: (parentNode: NodePath | null) => void;
-  /**
-   * Lifecycle notice that the rename editor opened.
-   * The rename request itself is sent from `onSave`.
-   */
-  onRename?: (node: NodePath) => void;
-  /** Delete intent. Return a Promise to keep the confirmation pending until it settles. */
-  onDelete?: (node: NodePath) => void | Promise<void>;
-  /** Create or rename intent. Return a Promise to keep the editor pending until it settles. */
-  onSave?: (props: SaveProps) => void | Promise<void>;
-  onSelectedNodeChange?: (node: NodePath | null) => void;
-  /** Move intent. Return a Promise to keep the drop pending until it settles. The tree is not reordered here. */
-  onNodeMove?: (node: TreeNode, target: TreeNode) => void | Promise<void>;
-  /** Called when a returned Promise from save, delete, or move rejects. */
-  onActionError?: (error: unknown, action: DireactreeMutation) => void;
-}
-
 type Action = 'createFolder' | 'createFile' | 'rename' | 'delete';
 
 type SelectedAction = {
@@ -152,144 +102,43 @@ type SelectedAction = {
   nodeId: string | null;
 };
 
-type VisibleItem = {
-  id: string;
-  node: TreeNode;
-  depth: number;
-  path: NodePath;
-  parentId: string | null;
-  posinset: number;
-  setsize: number;
-};
+type LoadEntry = { status: 'loading' } | { status: 'error'; message: string };
+
+type Row =
+  | { kind: 'node'; key: string; item: VisibleItem<unknown> }
+  | { kind: 'editor'; key: string; depth: number }
+  | { kind: 'status'; key: string; depth: number; nodeId: string; state: LoadEntry };
+
+type PendingScroll = { id: string; block: NonNullable<RevealOptions['block']>; attempts: number };
+
+type DraftCheck = { name: string; error: string | null };
 
 const DRAG_PAYLOAD_MIME = 'application/json';
+const ROW_GAP = 8;
+const DEFAULT_ROW_HEIGHT = 32;
+const DEFAULT_OVERSCAN = 8;
+const EMPTY_FLAGS: Record<string, boolean> = {};
 
-function collectInitialExpanded(nodes: TreeNode[], into: Record<string, boolean> = {}): Record<string, boolean> {
-  for (const node of nodes) {
-    if (node.type === 'folder' && node.isExpanded) {
-      into[node.id] = true;
-    }
-    if (node.children?.length) {
-      collectInitialExpanded(node.children, into);
-    }
+const ALL_ALLOWED: NodePermissions = { rename: true, delete: true, move: true, drop: true, createChild: true };
+const NONE_ALLOWED: NodePermissions = { rename: false, delete: false, move: false, drop: false, createChild: false };
+const PERMISSION_KEYS: (keyof NodePermissions)[] = ['rename', 'delete', 'move', 'drop', 'createChild'];
+
+// Only used by parts that never render on the server, such as the context menu.
+const useIsoLayoutEffect = typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect;
+
+function mergePermissions(base: NodePermissions, patch?: Partial<NodePermissions>): NodePermissions {
+  if (!patch) {
+    return base;
   }
-  return into;
-}
-
-function collectAllFolderIds(nodes: TreeNode[], into: Record<string, boolean> = {}): Record<string, boolean> {
-  for (const node of nodes) {
-    if (node.type === 'folder') {
-      into[node.id] = true;
-    }
-    if (node.children?.length) {
-      collectAllFolderIds(node.children, into);
-    }
-  }
-  return into;
-}
-
-function findNodeById(nodes: TreeNode[], id: string): TreeNode | null {
-  for (const node of nodes) {
-    if (node.id === id) {
-      return node;
-    }
-    if (node.children?.length) {
-      const found = findNodeById(node.children, id);
-      if (found) {
-        return found;
-      }
+  let next = base;
+  for (const key of PERMISSION_KEYS) {
+    const value = patch[key];
+    if (typeof value === 'boolean' && value !== next[key]) {
+      next = next === base ? { ...base } : next;
+      next[key] = value;
     }
   }
-  return null;
-}
-
-function findNodePath(nodes: TreeNode[], id: string, parent: NodePath | null = null): NodePath | null {
-  for (const node of nodes) {
-    const path: NodePath = {
-      name: node.name,
-      id: node.id,
-      type: node.type,
-      parent
-    };
-    if (node.id === id) {
-      return path;
-    }
-    if (node.children?.length) {
-      const found = findNodePath(node.children, id, path);
-      if (found) {
-        return found;
-      }
-    }
-  }
-  return null;
-}
-
-function pathSignature(path: NodePath | null): string {
-  if (!path) {
-    return '';
-  }
-  const parts: string[] = [];
-  let current: NodePath | null = path;
-  while (current) {
-    parts.push(`${current.id}:${current.name}:${current.type}`);
-    current = current.parent;
-  }
-  return parts.join('/');
-}
-
-function isDescendant(source: TreeNode, targetId: string): boolean {
-  for (const child of source.children ?? []) {
-    if (child.id === targetId || isDescendant(child, targetId)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function isMoveable(source: TreeNode, target: TreeNode): boolean {
-  if (source.id === target.id || target.type !== 'folder') {
-    return false;
-  }
-  if (target.children?.some(child => child.id === source.id)) {
-    return false;
-  }
-  if (source.type === 'folder' && isDescendant(source, target.id)) {
-    return false;
-  }
-  return true;
-}
-
-function flattenVisible(
-  nodes: TreeNode[],
-  expanded: Record<string, boolean>,
-  depth = 0,
-  parent: NodePath | null = null
-): VisibleItem[] {
-  const items: VisibleItem[] = [];
-
-  nodes.forEach((node, index) => {
-    const path: NodePath = {
-      name: node.name,
-      id: node.id,
-      type: node.type,
-      parent
-    };
-    items.push({
-      id: node.id,
-      node,
-      depth,
-      path,
-      parentId: parent?.id ?? null,
-      posinset: index + 1,
-      setsize: nodes.length
-    });
-
-    if (node.type === 'folder' && expanded[node.id] && node.children?.length) {
-      items.push(...flattenVisible(node.children, expanded, depth + 1, path));
-    }
-  });
-
-  return items;
+  return next;
 }
 
 function readDraggedId(dataTransfer: DataTransfer): string | null {
@@ -310,11 +159,11 @@ function escapeNodeId(id: string): string {
   if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
     return CSS.escape(id);
   }
-  return id.replace(/"/g, '\\"');
+  return id.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
-function isPromise(value: unknown): value is Promise<void> {
-  return typeof value === 'object' && value !== null && typeof (value as Promise<void>).then === 'function';
+function isPromise(value: unknown): value is Promise<unknown> {
+  return typeof value === 'object' && value !== null && typeof (value as Promise<unknown>).then === 'function';
 }
 
 function toErrorMessage(error: unknown, fallback: string): string {
@@ -327,13 +176,53 @@ function toErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function highlightName(name: string, term: string): React.ReactNode {
+  if (!term) {
+    return name;
+  }
+  const match = new RegExp(escapeRegExp(term), 'i').exec(name);
+  if (!match) {
+    return name;
+  }
+  const end = match.index + match[0].length;
+  return (
+    <>
+      {name.slice(0, match.index)}
+      <mark className="direactree-match">{match[0]}</mark>
+      {name.slice(end)}
+    </>
+  );
+}
+
+/** Index of the row that contains the vertical position `y`. */
+function rowIndexAt(offsets: number[], y: number): number {
+  let low = 0;
+  let high = offsets.length - 2;
+  if (high < 0) {
+    return 0;
+  }
+  while (low < high) {
+    const mid = (low + high + 1) >> 1;
+    if (offsets[mid] <= y) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return low;
+}
+
 const SetNode = ({
   selectedNode,
   actionType,
   onCancel,
   onSave,
-  indent,
   createType,
+  validate,
   pending = false,
   error = null,
   messages,
@@ -342,15 +231,19 @@ const SetNode = ({
   actionType: 'create' | 'edit';
   onCancel: () => void;
   onSave: (props: SaveProps) => void;
-  indent: number;
   createType?: 'folder' | 'file';
+  validate: (name: string) => DraftCheck;
   pending?: boolean;
   error?: string | null;
   messages: DireactreeMessages;
 }) => {
   const [name, setName] = React.useState(actionType === 'edit' ? selectedNode?.name || '' : '');
+  const [dirty, setDirty] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const canSave = !pending && name.length > 0 && !(actionType === 'edit' && name === selectedNode?.name);
+  const unchanged = actionType === 'edit' && name === selectedNode?.name;
+  const check = unchanged ? { name, error: null } : validate(name);
+  const canSave = !pending && name.length > 0 && !unchanged && !check.error;
+  const shownError = (dirty && check.error) || error;
 
   React.useEffect(() => {
     inputRef.current?.focus();
@@ -359,41 +252,46 @@ const SetNode = ({
 
   const save = () => {
     if (!canSave) {
+      setDirty(true);
       return;
     }
-    onSave({ newName: name, selectedNode: selectedNode || null, actionType, createType });
+    onSave({ newName: check.name, selectedNode: selectedNode || null, actionType, createType });
   };
 
   return (
-    <div className="direactree-editor" style={{ paddingLeft: `${actionType === 'create' ? indent + 8 : 0}px` }}>
-    <div className="direactree-edit-node">
-      <input
-        ref={inputRef}
-        type="text"
-        value={name}
-        disabled={pending}
-        aria-label={actionType === 'edit'
-          ? messages.rename
-          : createType === 'folder'
-            ? messages.newFolderName
-            : createType === 'file'
-              ? messages.newFileName
-              : messages.newItemName}
-        onChange={(event) => setName(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault();
-            save();
-          } else if (event.key === 'Escape' && !pending) {
-            event.preventDefault();
-            onCancel();
-          }
-        }}
-      />
-      <button type="button" onClick={save} disabled={!canSave}>{messages.save}</button>
-      <button type="button" className="direactree-cancel-button" onClick={onCancel} disabled={pending}>{messages.cancel}</button>
-    </div>
-      {error ? <p className="direactree-error" role="alert">{error}</p> : null}
+    <div className="direactree-editor">
+      <div className="direactree-edit-node">
+        <input
+          ref={inputRef}
+          type="text"
+          value={name}
+          disabled={pending}
+          aria-invalid={dirty && check.error ? true : undefined}
+          aria-label={actionType === 'edit'
+            ? messages.rename
+            : createType === 'folder'
+              ? messages.newFolderName
+              : createType === 'file'
+                ? messages.newFileName
+                : messages.newItemName}
+          onChange={(event) => {
+            setName(event.target.value);
+            setDirty(true);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              save();
+            } else if (event.key === 'Escape' && !pending) {
+              event.preventDefault();
+              onCancel();
+            }
+          }}
+        />
+        <button type="button" onClick={save} disabled={!canSave}>{messages.save}</button>
+        <button type="button" className="direactree-cancel-button" onClick={onCancel} disabled={pending}>{messages.cancel}</button>
+      </div>
+      {shownError ? <p className="direactree-error" role="alert">{shownError}</p> : null}
     </div>
   );
 };
@@ -413,7 +311,7 @@ const DeleteConfirm = ({
 }: {
   nodeId: string;
   name: string;
-  nodeType: TreeNode['type'];
+  nodeType: NodeType;
   pending: boolean;
   disabled?: boolean;
   error: string | null;
@@ -551,216 +449,137 @@ const DeleteConfirm = ({
   );
 };
 
-interface DireactreeNodeProps {
-  node: TreeNode[];
-  depth: number;
-  indent: number;
-  selectedNodeId: string | null;
-  setSelectedNodeId: (id: string) => void;
-  selectedAction?: SelectedAction | null;
-  actionNode: NodePath | null;
-  onSave: (props: SaveProps) => void;
-  onCancel: () => void;
-  onConfirmDelete: (id: string) => void;
-  deletePending?: boolean;
-  actionsLocked?: boolean;
-  deleteError?: string | null;
-  expandedNodes: Record<string, boolean>;
-  toggleExpanded: (id: string) => void;
-  onItemKeyDown: (event: React.KeyboardEvent<HTMLDivElement>, id: string) => void;
-  tabTargetId?: string;
-  allowDragAndDrop?: boolean;
-  dragOverNodeId: string | null;
-  pendingSave?: boolean;
-  saveError?: string | null;
-  messages: DireactreeMessages;
-  onDragStartNode: (event: React.DragEvent<HTMLLIElement>, id: string) => void;
-  onDragOverNode: (event: React.DragEvent<HTMLLIElement>, node: TreeNode) => void;
-  onDragLeaveNode: (event: React.DragEvent<HTMLLIElement>, id: string) => void;
-  onDropNode: (event: React.DragEvent<HTMLLIElement>, node: TreeNode) => void;
-}
-
-const DireactreeNode: React.FC<DireactreeNodeProps> = ({
-  node,
-  depth,
-  indent,
-  selectedNodeId,
-  setSelectedNodeId,
-  selectedAction,
-  actionNode,
-  onSave,
-  onCancel,
-  onConfirmDelete,
-  deletePending = false,
-  actionsLocked = false,
-  deleteError = null,
-  expandedNodes,
-  toggleExpanded,
-  onItemKeyDown,
-  tabTargetId,
-  allowDragAndDrop = true,
-  dragOverNodeId,
-  pendingSave = false,
-  saveError = null,
-  messages,
-  onDragStartNode,
-  onDragOverNode,
-  onDragLeaveNode,
-  onDropNode
+const ContextMenu = ({
+  label,
+  entries,
+  x,
+  y,
+  onSelect,
+  onClose,
+}: {
+  label: string;
+  entries: ContextMenuEntry<unknown>[];
+  x: number;
+  y: number;
+  onSelect: (item: ContextMenuItem<unknown>) => void;
+  onClose: (restoreFocus: boolean) => void;
 }) => {
-  const isCreating = selectedAction?.action === 'createFolder' || selectedAction?.action === 'createFile';
-  const createType = selectedAction?.action === 'createFolder' ? 'folder' : 'file';
+  const overlay = React.useContext(DireactreeOverlayContext);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+  const [left, setLeft] = React.useState(x);
+  const onCloseRef = React.useRef(onClose);
+  onCloseRef.current = onClose;
 
-  return (
-    <>
-      <ul
-        className="direactree-list"
-        role={depth === 0 ? 'tree' : 'group'}
-        aria-label={depth === 0 ? messages.directoryTree : undefined}
-        style={{ paddingLeft: `${depth === 0 ? 0 : indent}px` }}
-      >
-        {node.map((nodeChild, index) => {
-          const isSelected = selectedNodeId === nodeChild.id;
-          const isRenaming = selectedAction?.action === 'rename' && selectedAction.nodeId === nodeChild.id;
-          const isExpanded = nodeChild.type === 'folder' && !!expandedNodes[nodeChild.id];
+  useIsoLayoutEffect(() => {
+    const menu = menuRef.current;
+    if (!menu || !overlay) {
+      setLeft(x);
+      return;
+    }
+    const room = overlay.clientWidth - menu.offsetWidth;
+    setLeft(room > 0 ? Math.max(0, Math.min(x, room)) : x);
+  }, [x, overlay]);
 
-          return (
-            <li
-              role="none"
-              draggable={allowDragAndDrop && !isRenaming}
-              className={`direactree-item ${isSelected ? 'direactree-item-selected' : ''} ${dragOverNodeId === nodeChild.id ? 'direactree-item-dragover' : ''}`}
-              key={nodeChild.id}
-              onDragStart={(event) => onDragStartNode(event, nodeChild.id)}
-              onDragOver={(event) => onDragOverNode(event, nodeChild)}
-              onDragLeave={(event) => onDragLeaveNode(event, nodeChild.id)}
-              onDrop={(event) => onDropNode(event, nodeChild)}
-            >
-              <div className="direactree-item-anchor">
-              {isRenaming ? (
-                <SetNode
-                  selectedNode={actionNode}
-                  actionType="edit"
-                  onCancel={onCancel}
-                  onSave={onSave}
-                  indent={indent}
-                  pending={pendingSave}
-                  error={saveError}
-                  messages={messages}
-                />
-              ) : (
-                <div
-                  role="treeitem"
-                  data-node-id={nodeChild.id}
-                  aria-label={nodeChild.name}
-                  aria-selected={isSelected}
-                  aria-level={depth + 1}
-                  aria-expanded={nodeChild.type === 'folder' ? isExpanded : undefined}
-                  aria-posinset={index + 1}
-                  aria-setsize={node.length}
-                  tabIndex={tabTargetId === nodeChild.id ? 0 : -1}
-                  className={`direactree-item-container ${isSelected ? 'selected' : ''}`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setSelectedNodeId(nodeChild.id);
-                  }}
-                  onKeyDown={(event) => onItemKeyDown(event, nodeChild.id)}
-                >
-                  {nodeChild.type === 'folder' ? (
-                    <button
-                      type="button"
-                      className="direactree-item-button"
-                      tabIndex={-1}
-                      aria-hidden="true"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        toggleExpanded(nodeChild.id);
-                      }}
-                    >
-                      {isExpanded ? '▼' : '►'}
-                    </button>
-                  ) : (
-                    <span className="direactree-item-button" aria-hidden="true" />
-                  )}
-                  <span className="direactree-item-name" title={nodeChild.name}>{nodeChild.name}</span>
-                </div>
-              )}
-              {selectedAction?.action === 'delete' && selectedAction.nodeId === nodeChild.id && (
-                <DeleteConfirm
-                  nodeId={nodeChild.id}
-                  name={nodeChild.name}
-                  nodeType={nodeChild.type}
-                  pending={deletePending}
-                  disabled={actionsLocked}
-                  error={deleteError ?? null}
-                  messages={messages}
-                  onConfirm={() => onConfirmDelete(nodeChild.id)}
-                  onCancel={onCancel}
-                />
-              )}
-              </div>
-              {nodeChild.type === 'folder' && isExpanded && !!nodeChild.children?.length && (
-                <div className="direactree-item-children expanded">
-                  <DireactreeNode
-                    node={nodeChild.children}
-                    depth={depth + 1}
-                    indent={indent}
-                    selectedNodeId={selectedNodeId}
-                    setSelectedNodeId={setSelectedNodeId}
-                    selectedAction={selectedAction}
-                    actionNode={actionNode}
-                    onSave={onSave}
-                    onCancel={onCancel}
-                    onConfirmDelete={onConfirmDelete}
-                    deletePending={deletePending}
-                    actionsLocked={actionsLocked}
-                    deleteError={deleteError}
-                    expandedNodes={expandedNodes}
-                    toggleExpanded={toggleExpanded}
-                    onItemKeyDown={onItemKeyDown}
-                    tabTargetId={tabTargetId}
-                    allowDragAndDrop={allowDragAndDrop}
-                    dragOverNodeId={dragOverNodeId}
-                    pendingSave={pendingSave}
-                    saveError={saveError}
-                    messages={messages}
-                    onDragStartNode={onDragStartNode}
-                    onDragOverNode={onDragOverNode}
-                    onDragLeaveNode={onDragLeaveNode}
-                    onDropNode={onDropNode}
-                  />
-                </div>
-              )}
-              {isCreating && selectedAction?.nodeId === nodeChild.id && (
-                <SetNode
-                  selectedNode={actionNode}
-                  actionType="create"
-                  onCancel={onCancel}
-                  onSave={onSave}
-                  indent={indent}
-                  createType={createType}
-                  pending={pendingSave}
-                  error={saveError}
-                  messages={messages}
-                />
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      {isCreating && selectedAction?.nodeId == null && depth === 0 && (
-        <SetNode
-          selectedNode={null}
-          actionType="create"
-          onCancel={onCancel}
-          onSave={onSave}
-          indent={0}
-          createType={createType}
-          pending={pendingSave}
-          error={saveError}
-          messages={messages}
-        />
-      )}
-    </>
+  React.useEffect(() => {
+    const first = menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]:not([disabled])');
+    (first ?? menuRef.current)?.focus();
+  }, [overlay]);
+
+  React.useEffect(() => {
+    const handleDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (menuRef.current && target instanceof Node && !menuRef.current.contains(target)) {
+        onCloseRef.current(false);
+      }
+    };
+    document.addEventListener('mousedown', handleDown);
+    return () => document.removeEventListener('mousedown', handleDown);
+  }, []);
+
+  if (!overlay) {
+    return null;
+  }
+
+  const moveFocus = (step: number | 'first' | 'last') => {
+    const items = Array.prototype.slice.call(
+      menuRef.current?.querySelectorAll('[role="menuitem"]:not([disabled])') ?? []
+    ) as HTMLElement[];
+    if (!items.length) {
+      return;
+    }
+    const current = items.indexOf(document.activeElement as HTMLElement);
+    let next: number;
+    if (step === 'first') {
+      next = 0;
+    } else if (step === 'last') {
+      next = items.length - 1;
+    } else {
+      next = current === -1 ? 0 : (current + step + items.length) % items.length;
+    }
+    items[next].focus();
+  };
+
+  return ReactDOM.createPortal(
+    <div
+      ref={menuRef}
+      className="direactree-menu"
+      role="menu"
+      aria-label={label}
+      tabIndex={-1}
+      style={{ top: y, left }}
+      onContextMenu={(event) => event.preventDefault()}
+      onKeyDown={(event) => {
+        switch (event.key) {
+          case 'ArrowDown':
+            event.preventDefault();
+            moveFocus(1);
+            break;
+          case 'ArrowUp':
+            event.preventDefault();
+            moveFocus(-1);
+            break;
+          case 'Home':
+            event.preventDefault();
+            moveFocus('first');
+            break;
+          case 'End':
+            event.preventDefault();
+            moveFocus('last');
+            break;
+          case 'Escape':
+            event.preventDefault();
+            event.stopPropagation();
+            onClose(true);
+            break;
+          case 'Tab':
+            onClose(false);
+            break;
+          default:
+            break;
+        }
+      }}
+    >
+      {entries.map((entry, index) => {
+        if (entry === 'separator') {
+          return <div key={`separator-${index}`} role="separator" className="direactree-menu-separator" />;
+        }
+        return (
+          <button
+            key={entry.id}
+            type="button"
+            role="menuitem"
+            tabIndex={-1}
+            className={`direactree-menu-item${entry.danger ? ' direactree-menu-item-danger' : ''}`}
+            disabled={entry.disabled}
+            onClick={() => onSelect(entry)}
+          >
+            {entry.icon ? <span className="direactree-menu-icon" aria-hidden="true">{entry.icon}</span> : null}
+            <span className="direactree-menu-label">{entry.label}</span>
+          </button>
+        );
+      })}
+    </div>,
+    overlay
   );
 };
 
@@ -768,9 +587,11 @@ interface ToolboxProps {
   selectedNode: NodePath | null;
   toolboxIcons?: ToolboxIcons;
   toolboxSticky?: boolean;
+  toolboxActions?: ToolboxAction[];
   pending?: boolean;
-  canSave?: boolean;
-  canDelete?: boolean;
+  canCreate: boolean;
+  canRename: boolean;
+  canDelete: boolean;
   deleteButtonRef?: React.Ref<HTMLButtonElement>;
   messages: DireactreeMessages;
   onCreateFolder: (parentNode: NodePath | null) => void;
@@ -783,9 +604,11 @@ const Toolbox: React.FC<ToolboxProps> = ({
   selectedNode,
   toolboxIcons,
   toolboxSticky = false,
+  toolboxActions,
   pending = false,
-  canSave = false,
-  canDelete = false,
+  canCreate,
+  canRename,
+  canDelete,
   deleteButtonRef,
   messages,
   onCreateFolder,
@@ -801,7 +624,7 @@ const Toolbox: React.FC<ToolboxProps> = ({
         onClick={() => onCreateFolder(selectedNode)}
         aria-label={messages.createFolder}
         title={messages.createFolder}
-        disabled={pending || !canSave || selectedNode?.type === 'file'}
+        disabled={pending || !canCreate}
       >
         {toolboxIcons?.createFolder || <span className="direactree-toolbox-icon" aria-hidden="true">📂</span>}
       </button>
@@ -811,7 +634,7 @@ const Toolbox: React.FC<ToolboxProps> = ({
         onClick={() => onCreateFile(selectedNode)}
         aria-label={messages.createFile}
         title={messages.createFile}
-        disabled={pending || !canSave || selectedNode?.type === 'file'}
+        disabled={pending || !canCreate}
       >
         {toolboxIcons?.createFile || <span className="direactree-toolbox-icon" aria-hidden="true">📄</span>}
       </button>
@@ -819,7 +642,7 @@ const Toolbox: React.FC<ToolboxProps> = ({
         type="button"
         className="direactree-toolbox-button"
         onClick={() => selectedNode && onRename(selectedNode)}
-        disabled={pending || !canSave || !selectedNode}
+        disabled={pending || !canRename || !selectedNode}
         aria-label={messages.rename}
         title={messages.rename}
       >
@@ -836,6 +659,22 @@ const Toolbox: React.FC<ToolboxProps> = ({
       >
         {toolboxIcons?.delete || <span className="direactree-toolbox-icon" aria-hidden="true">🗑️</span>}
       </button>
+      {toolboxActions?.map(action => {
+        const disabled = typeof action.disabled === 'function' ? action.disabled(selectedNode) : Boolean(action.disabled);
+        return (
+          <button
+            key={action.id}
+            type="button"
+            className="direactree-toolbox-button"
+            onClick={() => action.onClick(selectedNode)}
+            disabled={disabled}
+            aria-label={action.label}
+            title={action.label}
+          >
+            {action.icon}
+          </button>
+        );
+      })}
     </div>
   );
 };
@@ -844,39 +683,79 @@ const themeColorScheme = (theme: DireactreeTheme): React.CSSProperties['colorSch
   theme === 'system' ? 'light dark' : theme
 );
 
-const Direactree = ({
-  className = '',
-  theme = 'system',
-  style,
-  structure,
-  indent = 20,
-  showToolbox = true,
-  toolboxIcons,
-  toolboxSticky = false,
-  allowDragAndDrop = true,
-  isAllExpanded = false,
-  confirmDelete = false,
-  messages: messagesProp,
-  onCreateFolder,
-  onCreateFile,
-  onRename,
-  onDelete,
-  onSave,
-  onSelectedNodeChange,
-  onNodeMove,
-  onActionError,
-}: DireactreeProps): React.ReactElement => {
+function DireactreeInner(
+  props: DireactreeProps<unknown>,
+  ref: React.ForwardedRef<DireactreeHandle>
+): React.ReactElement {
+  const {
+    className = '',
+    theme = 'system',
+    style,
+    structure,
+    indent = 20,
+    showToolbox = true,
+    toolboxIcons,
+    toolboxSticky = false,
+    toolboxActions,
+    allowDragAndDrop = true,
+    isAllExpanded = false,
+    confirmDelete = false,
+    messages: messagesProp,
+    nameRules: nameRulesProp,
+    validateName: validateNameProp,
+    getNodePermissions,
+    selectedId: selectedIdProp,
+    searchTerm: searchTermProp,
+    searchMode = 'filter',
+    filterNode,
+    showSearch = false,
+    onSearchChange,
+    renderIcon,
+    renderLabel,
+    renderBadge,
+    getRowClassName,
+    contextMenu = false,
+    virtualized = false,
+    onLoadChildren,
+    onCreateFolder,
+    onCreateFile,
+    onRename,
+    onDelete,
+    onSave,
+    onSelectedNodeChange,
+    onNodeMove,
+    onActionError,
+  } = props;
+
   const validatedIndent = React.useMemo(() => validateIndent(indent), [indent]);
-  const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null);
+  const step = validatedIndent + ROW_GAP;
+  const selectionControlled = selectedIdProp !== undefined;
+  const [internalSelectedId, setInternalSelectedId] = React.useState<string | null>(null);
+  const selectedNodeId = selectionControlled ? (selectedIdProp ?? null) : internalSelectedId;
   const [selectedAction, setSelectedAction] = React.useState<SelectedAction | null>(null);
   const [expandedNodes, setExpandedNodes] = React.useState<Record<string, boolean>>(() => (
     isAllExpanded ? collectAllFolderIds(structure) : collectInitialExpanded(structure)
   ));
+  const [searchToggleState, setSearchToggleState] = React.useState<{ term: string; open: Record<string, boolean> }>({ term: '', open: {} });
+  const [internalSearch, setInternalSearch] = React.useState('');
   const [dragOverNodeId, setDragOverNodeId] = React.useState<string | null>(null);
   const [pendingAction, setPendingAction] = React.useState<DireactreeMutation | null>(null);
   const [actionError, setActionError] = React.useState<{ kind: DireactreeMutation; message: string } | null>(null);
+  const [loadState, setLoadState] = React.useState<Record<string, LoadEntry>>({});
+  const [menu, setMenu] = React.useState<{ nodeId: string; x: number; y: number } | null>(null);
+  const [announcement, setAnnouncement] = React.useState('');
+  const [viewportState, setViewportState] = React.useState({ top: 0, height: 0 });
+  const [editorHeight, setEditorHeight] = React.useState(0);
+  const [, setRenderTick] = React.useState(0);
+  const [overlayElement, setOverlayElement] = React.useState<HTMLDivElement | null>(null);
+
   const direactreeRef = React.useRef<HTMLDivElement>(null);
+  const viewportRef = React.useRef<HTMLDivElement>(null);
   const pendingFocusId = React.useRef<string | null>(null);
+  const pendingScrollRef = React.useRef<PendingScroll | null>(null);
+  const pendingRevealRef = React.useRef<string | null>(null);
+  const draggedIdRef = React.useRef<string | null>(null);
+  const requestedLoadsRef = React.useRef<Record<string, boolean>>({});
   const wasAllExpanded = React.useRef(isAllExpanded);
   const pendingRef = React.useRef(false);
   const mountedRef = React.useRef(true);
@@ -888,10 +767,16 @@ const Direactree = ({
   const onDeleteRef = React.useRef(onDelete);
   const onNodeMoveRef = React.useRef(onNodeMove);
   const onActionErrorRef = React.useRef(onActionError);
+  const onLoadChildrenRef = React.useRef(onLoadChildren);
+  const getNodePermissionsRef = React.useRef(getNodePermissions);
+  const selectedNodeIdRef = React.useRef(selectedNodeId);
+  const selectionControlledRef = React.useRef(selectionControlled);
+  const viewportStateRef = React.useRef(viewportState);
   const messages = React.useMemo(
     () => ({ ...defaultDireactreeMessages, ...messagesProp }),
     [messagesProp]
   );
+  const nameRules = React.useMemo(() => ({ ...defaultNameRules, ...nameRulesProp }), [nameRulesProp]);
   const messagesRef = React.useRef(messages);
   messagesRef.current = messages;
   structureRef.current = structure;
@@ -900,12 +785,48 @@ const Direactree = ({
   onDeleteRef.current = onDelete;
   onNodeMoveRef.current = onNodeMove;
   onActionErrorRef.current = onActionError;
+  onLoadChildrenRef.current = onLoadChildren;
+  getNodePermissionsRef.current = getNodePermissions;
+  selectedNodeIdRef.current = selectedNodeId;
+  selectionControlledRef.current = selectionControlled;
+  viewportStateRef.current = viewportState;
+
+  const rawTerm = searchTermProp ?? internalSearch;
+  const term = rawTerm.trim();
+  const termRef = React.useRef(term);
+  termRef.current = term;
+  const searchResult = React.useMemo(
+    () => (term ? searchTree(structure, term, filterNode) : null),
+    [structure, term, filterNode]
+  );
+  const searchToggles = searchToggleState.term === term ? searchToggleState.open : EMPTY_FLAGS;
+
+  const virtualConfig = virtualized
+    ? {
+      rowHeight: (typeof virtualized === 'object' && virtualized.rowHeight) || DEFAULT_ROW_HEIGHT,
+      overscan: typeof virtualized === 'object' && typeof virtualized.overscan === 'number' ? virtualized.overscan : DEFAULT_OVERSCAN,
+      height: typeof virtualized === 'object' ? virtualized.height : undefined,
+    }
+    : null;
+  const isVirtual = virtualConfig !== null;
 
   const selectedNode = React.useMemo(
     () => (selectedNodeId ? findNodePath(structure, selectedNodeId) : null),
     [structure, selectedNodeId]
   );
-  const selectedSignature = pathSignature(selectedNode);
+  const selectedTreeNode = React.useMemo(
+    () => (selectedNodeId ? findNode(structure, selectedNodeId) : null),
+    [structure, selectedNodeId]
+  );
+  const selectedSignature = React.useMemo(() => {
+    const parts: string[] = [];
+    let current: NodePath | null = selectedNode;
+    while (current) {
+      parts.push(`${current.id}:${current.name}:${current.type}`);
+      current = current.parent;
+    }
+    return parts.join('/');
+  }, [selectedNode]);
   const selectedNodeRef = React.useRef(selectedNode);
   selectedNodeRef.current = selectedNode;
 
@@ -913,14 +834,22 @@ const Direactree = ({
     () => (selectedAction?.nodeId ? findNodePath(structure, selectedAction.nodeId) : null),
     [structure, selectedAction]
   );
+  const allFolderIds = React.useMemo(
+    () => (isAllExpanded ? collectAllFolderIds(structure) : null),
+    [isAllExpanded, structure]
+  );
+  const baseExpanded = allFolderIds ?? expandedNodes;
   const expandedNodesForView = React.useMemo(
-    () => (isAllExpanded ? collectAllFolderIds(structure) : expandedNodes),
-    [isAllExpanded, structure, expandedNodes]
+    () => (searchResult ? { ...baseExpanded, ...searchResult.open, ...searchToggles } : baseExpanded),
+    [baseExpanded, searchResult, searchToggles]
   );
+  const filterInclude = searchResult && searchMode === 'filter' ? searchResult.include : undefined;
   const visibleItems = React.useMemo(
-    () => flattenVisible(structure, expandedNodesForView),
-    [structure, expandedNodesForView]
+    () => flattenVisible(structure, expandedNodesForView, filterInclude) as VisibleItem<unknown>[],
+    [structure, expandedNodesForView, filterInclude]
   );
+  const visibleItemsRef = React.useRef(visibleItems);
+  visibleItemsRef.current = visibleItems;
   const tabTargetId = selectedNodeId && visibleItems.some(item => item.id === selectedNodeId)
     ? selectedNodeId
     : visibleItems[0]?.id;
@@ -935,6 +864,212 @@ const Direactree = ({
   const canSave = Boolean(onSave);
   const canDelete = Boolean(onDelete);
   const canDrag = allowDragAndDrop && Boolean(onNodeMove) && pendingAction === null;
+  const contextMenuEnabled = Boolean(contextMenu);
+  const isCreating = selectedAction?.action === 'createFolder' || selectedAction?.action === 'createFile';
+  const createType = selectedAction?.action === 'createFolder' ? 'folder' : 'file';
+  const renamingId = selectedAction?.action === 'rename' ? selectedAction.nodeId : null;
+
+  const permissionsFor = (node: AnyNode, path?: NodePath | null): NodePermissions => {
+    let perms = mergePermissions(node.locked ? NONE_ALLOWED : ALL_ALLOWED, node.permissions);
+    const getter = getNodePermissionsRef.current;
+    if (getter) {
+      const resolvedPath = path ?? findNodePath(structureRef.current, node.id);
+      if (resolvedPath) {
+        perms = mergePermissions(perms, getter(node, resolvedPath));
+      }
+    }
+    return perms;
+  };
+
+  const selectedPerms = selectedTreeNode ? permissionsFor(selectedTreeNode, selectedNode) : ALL_ALLOWED;
+  const canCreateHere = canSave && (!selectedNode || (selectedNode.type === 'folder' && selectedPerms.createChild));
+
+  const rows = React.useMemo(() => {
+    const out: Row[] = [];
+    const createParentId = isCreating ? selectedAction?.nodeId ?? null : null;
+    let editorPlaced = !isCreating;
+    let waiting = false;
+    let editorAfterDepth = -1;
+    const placeEditor = (depth: number) => {
+      out.push({ kind: 'editor', key: '__direactree-editor__', depth });
+      editorPlaced = true;
+      waiting = false;
+    };
+    for (const item of visibleItems) {
+      if (waiting && item.depth <= editorAfterDepth) {
+        placeEditor(editorAfterDepth + 1);
+      }
+      out.push({ kind: 'node', key: item.id, item });
+      const load = loadState[item.id];
+      if (load && item.node.type === 'folder' && expandedNodesForView[item.id] && item.node.children === undefined) {
+        out.push({ kind: 'status', key: `__direactree-status-${item.id}`, depth: item.depth + 1, nodeId: item.id, state: load });
+      }
+      if (!editorPlaced && createParentId !== null && item.id === createParentId) {
+        waiting = true;
+        editorAfterDepth = item.depth;
+      }
+    }
+    if (!editorPlaced) {
+      placeEditor(waiting ? editorAfterDepth + 1 : 0);
+    }
+    return out;
+  }, [visibleItems, isCreating, selectedAction, loadState, expandedNodesForView]);
+
+  const rowHeight = virtualConfig?.rowHeight ?? DEFAULT_ROW_HEIGHT;
+  const layout = React.useMemo(() => {
+    if (!isVirtual) {
+      return null;
+    }
+    const tall = editorHeight || rowHeight * 2;
+    const offsets: number[] = [0];
+    for (let i = 0; i < rows.length; i += 1) {
+      const row = rows[i];
+      const height = row.kind === 'editor' || (row.kind === 'node' && row.item.id === renamingId) ? tall : rowHeight;
+      offsets.push(offsets[i] + height);
+    }
+    return { offsets, total: offsets[rows.length] };
+  }, [isVirtual, rows, rowHeight, editorHeight, renamingId]);
+  const layoutRef = React.useRef(layout);
+  layoutRef.current = layout;
+
+  let windowStart = 0;
+  let windowEnd = rows.length;
+  if (layout && virtualConfig) {
+    const viewHeight = viewportState.height || rowHeight * 12;
+    windowStart = Math.max(0, rowIndexAt(layout.offsets, viewportState.top) - virtualConfig.overscan);
+    windowEnd = Math.min(rows.length, rowIndexAt(layout.offsets, viewportState.top + viewHeight) + 1 + virtualConfig.overscan);
+  }
+
+  const setSelectedNodeId = React.useCallback((id: string | null) => {
+    if (selectionControlledRef.current) {
+      if (id !== selectedNodeIdRef.current) {
+        onSelectedNodeChangeRef.current?.(id ? findNodePath(structureRef.current, id) : null);
+      }
+      return;
+    }
+    setInternalSelectedId(id);
+  }, []);
+
+  const setExpanded = (id: string, open: boolean) => {
+    setExpandedNodes(prev => (Boolean(prev[id]) === open ? prev : { ...prev, [id]: open }));
+    const activeTerm = termRef.current;
+    if (activeTerm) {
+      setSearchToggleState(prev => {
+        const base = prev.term === activeTerm ? prev.open : {};
+        if (prev.term === activeTerm && base[id] === open) {
+          return prev;
+        }
+        return { term: activeTerm, open: { ...base, [id]: open } };
+      });
+    }
+  };
+
+  const expandMany = (ids: string[]) => {
+    if (!ids.length) {
+      return;
+    }
+    setExpandedNodes(prev => {
+      if (ids.every(id => prev[id])) {
+        return prev;
+      }
+      const next = { ...prev };
+      ids.forEach(id => { next[id] = true; });
+      return next;
+    });
+    const activeTerm = termRef.current;
+    if (activeTerm) {
+      setSearchToggleState(prev => {
+        const next = { ...(prev.term === activeTerm ? prev.open : {}) };
+        ids.forEach(id => { next[id] = true; });
+        return { term: activeTerm, open: next };
+      });
+    }
+  };
+
+  const scrollToRow = (index: number, id: string, block: PendingScroll['block']) => {
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
+    const currentLayout = layoutRef.current;
+    if (currentLayout) {
+      const top = currentLayout.offsets[index];
+      const bottom = currentLayout.offsets[index + 1];
+      const viewHeight = viewport.clientHeight || viewportStateRef.current.height || rowHeight * 12;
+      const current = viewportStateRef.current.top;
+      let next = current;
+      if (block === 'start') {
+        next = top;
+      } else if (block === 'end') {
+        next = bottom - viewHeight;
+      } else if (block === 'center') {
+        next = top - (viewHeight - (bottom - top)) / 2;
+      } else if (top < current) {
+        next = top;
+      } else if (bottom > current + viewHeight) {
+        next = bottom - viewHeight;
+      }
+      next = Math.max(0, Math.min(next, Math.max(0, currentLayout.total - viewHeight)));
+      if (viewport.scrollTop !== next) {
+        viewport.scrollTop = next;
+      }
+      setViewportState(prev => (prev.top === next ? prev : { ...prev, top: next }));
+      return;
+    }
+    const element = viewport.querySelector(`[data-node-id="${escapeNodeId(id)}"]`);
+    if (element instanceof HTMLElement && typeof element.scrollIntoView === 'function') {
+      element.scrollIntoView({ block });
+    }
+  };
+
+  const reveal = (id: string, options: RevealOptions = {}): boolean => {
+    const ancestors = getAncestorIds(structureRef.current, id);
+    if (!ancestors) {
+      return false;
+    }
+    const { select = true, focus = false, block = 'nearest' } = options;
+    expandMany(ancestors);
+    pendingRevealRef.current = id;
+    pendingScrollRef.current = { id, block, attempts: 0 };
+    if (focus) {
+      pendingFocusId.current = id;
+    }
+    if (select) {
+      setSelectedNodeId(id);
+    }
+    setRenderTick(tick => tick + 1);
+    return true;
+  };
+
+  const handleRef = React.useRef({ reveal, setExpanded, expandMany });
+  handleRef.current = { reveal, setExpanded, expandMany };
+
+  React.useImperativeHandle(ref, () => ({
+    revealNode: (id, options) => handleRef.current.reveal(id, options),
+    expand: (id) => handleRef.current.setExpanded(id, true),
+    collapse: (id) => handleRef.current.setExpanded(id, false),
+    expandAll: () => {
+      setExpandedNodes(collectAllFolderIds(structureRef.current));
+    },
+    collapseAll: () => {
+      setExpandedNodes({});
+      setSearchToggleState({ term: termRef.current, open: {} });
+    },
+    select: (id) => {
+      if (id === null) {
+        setSelectedNodeId(null);
+        return;
+      }
+      handleRef.current.reveal(id, { select: true });
+    },
+    focus: () => {
+      const id = selectedNodeIdRef.current ?? visibleItemsRef.current[0]?.id;
+      if (!id) {
+        return;
+      }
+      handleRef.current.reveal(id, { select: false, focus: true });
+    },
+  }), [setSelectedNodeId]);
 
   React.useEffect(() => {
     mountedRef.current = true;
@@ -952,13 +1087,31 @@ const Direactree = ({
   }, [isAllExpanded, structure]);
 
   React.useEffect(() => {
-    if (selectedNodeId && !findNodeById(structure, selectedNodeId)) {
+    if (selectedNodeId && !findNode(structure, selectedNodeId)) {
       setSelectedNodeId(null);
     }
-  }, [structure, selectedNodeId]);
+  }, [structure, selectedNodeId, setSelectedNodeId]);
+
+  // A controlled `selectedId` that points into a closed folder opens the way to it.
+  const previousSelectedProp = React.useRef(selectedIdProp);
+  React.useEffect(() => {
+    const previous = previousSelectedProp.current;
+    previousSelectedProp.current = selectedIdProp;
+    if (!selectionControlled || !selectedIdProp || previous === selectedIdProp) {
+      return;
+    }
+    if (!visibleItemsRef.current.some(item => item.id === selectedIdProp)) {
+      handleRef.current.reveal(selectedIdProp, { select: false });
+    }
+  }, [selectionControlled, selectedIdProp]);
 
   React.useEffect(() => {
-    if (!selectedNodeId || visibleItems.some(item => item.id === selectedNodeId)) {
+    if (
+      !selectedNodeId
+      || term
+      || pendingRevealRef.current === selectedNodeId
+      || visibleItems.some(item => item.id === selectedNodeId)
+    ) {
       return;
     }
     const path = findNodePath(structure, selectedNodeId);
@@ -985,18 +1138,47 @@ const Direactree = ({
     setSelectedAction(null);
     setActionError(null);
     setSelectedNodeId(nearestVisibleId);
-  }, [selectedNodeId, visibleItems, structure, expandedNodesForView]);
+  }, [selectedNodeId, visibleItems, structure, expandedNodesForView, term, setSelectedNodeId]);
 
   React.useEffect(() => {
-    if (selectedAction?.nodeId && !findNodeById(structure, selectedAction.nodeId)) {
+    if (selectedAction?.nodeId && !findNode(structure, selectedAction.nodeId)) {
       setSelectedAction(null);
       setActionError(null);
     }
   }, [structure, selectedAction]);
 
   React.useEffect(() => {
-    onSelectedNodeChangeRef.current?.(selectedNodeRef.current);
+    if (menu && !findNode(structure, menu.nodeId)) {
+      setMenu(null);
+    }
+  }, [structure, menu]);
+
+  React.useEffect(() => {
+    if (!selectionControlledRef.current) {
+      onSelectedNodeChangeRef.current?.(selectedNodeRef.current);
+    }
   }, [selectedSignature]);
+
+  // Scroll a revealed row into view once its ancestors are open.
+  React.useEffect(() => {
+    const pending = pendingScrollRef.current;
+    if (!pending) {
+      return;
+    }
+    const index = rows.findIndex(row => row.kind === 'node' && row.item.id === pending.id);
+    if (index === -1) {
+      pending.attempts += 1;
+      if (pending.attempts > 2 || !findNode(structureRef.current, pending.id)) {
+        pendingScrollRef.current = null;
+      }
+      return;
+    }
+    pendingScrollRef.current = null;
+    if (pendingRevealRef.current === pending.id) {
+      pendingRevealRef.current = null;
+    }
+    scrollToRow(index, pending.id, pending.block);
+  });
 
   React.useEffect(() => {
     const id = pendingFocusId.current;
@@ -1004,9 +1186,13 @@ const Direactree = ({
       return;
     }
     const target = direactreeRef.current.querySelector<HTMLElement>(`[data-node-id="${escapeNodeId(id)}"]`);
-    target?.focus();
-    pendingFocusId.current = null;
-  }, [selectedNodeId, expandedNodesForView]);
+    if (target) {
+      target.focus();
+      pendingFocusId.current = null;
+    } else if (!visibleItems.some(item => item.id === id)) {
+      pendingFocusId.current = null;
+    }
+  });
 
   React.useEffect(() => {
     if (!deleteConfirmationOpen) {
@@ -1036,7 +1222,9 @@ const Direactree = ({
           currentElement.classList.contains('direactree-item-container') ||
           currentElement.classList.contains('direactree-toolbox') ||
           currentElement.classList.contains('direactree-edit-node') ||
-          currentElement.classList.contains('direactree-confirm')
+          currentElement.classList.contains('direactree-confirm') ||
+          currentElement.classList.contains('direactree-menu') ||
+          currentElement.classList.contains('direactree-search')
         ) {
           isInside = true;
           break;
@@ -1053,22 +1241,127 @@ const Direactree = ({
     return () => {
       document.removeEventListener('mousedown', handleOutsideClick);
     };
-  }, [selectedAction]);
+  }, [selectedAction, setSelectedNodeId]);
+
+  /* Lazy loading */
+
+  const startLoad = React.useCallback((node: AnyNode) => {
+    const load = onLoadChildrenRef.current;
+    if (!load) {
+      return;
+    }
+    requestedLoadsRef.current[node.id] = true;
+    setLoadState(prev => ({ ...prev, [node.id]: { status: 'loading' } }));
+    const fail = (error: unknown) => {
+      if (mountedRef.current) {
+        setLoadState(prev => ({
+          ...prev,
+          [node.id]: { status: 'error', message: toErrorMessage(error, messagesRef.current.loadFailed) },
+        }));
+      }
+      onActionErrorRef.current?.(error, 'load');
+    };
+    const done = () => {
+      if (mountedRef.current) {
+        setLoadState(prev => {
+          if (!prev[node.id]) {
+            return prev;
+          }
+          const next = { ...prev };
+          delete next[node.id];
+          return next;
+        });
+      }
+    };
+    let result: unknown;
+    try {
+      result = load(node);
+    } catch (error) {
+      fail(error);
+      return;
+    }
+    if (isPromise(result)) {
+      result.then(done, fail);
+    } else {
+      done();
+    }
+  }, []);
+
+  const lazyEnabled = Boolean(onLoadChildren);
+  React.useEffect(() => {
+    if (!lazyEnabled) {
+      return;
+    }
+    for (const item of visibleItems) {
+      const node = item.node;
+      if (
+        node.type === 'folder'
+        && node.hasChildren
+        && node.children === undefined
+        && expandedNodesForView[node.id]
+        && !requestedLoadsRef.current[node.id]
+      ) {
+        startLoad(node);
+      }
+    }
+  }, [lazyEnabled, visibleItems, expandedNodesForView, startLoad]);
+
+  const retryLoad = (id: string) => {
+    const node = findNode(structureRef.current, id);
+    if (node) {
+      startLoad(node);
+    }
+  };
+
+  /* Virtualization measuring */
+
+  React.useEffect(() => {
+    if (!isVirtual) {
+      return undefined;
+    }
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return undefined;
+    }
+    const measure = () => {
+      setViewportState(prev => (
+        prev.height === viewport.clientHeight && prev.top === viewport.scrollTop
+          ? prev
+          : { top: viewport.scrollTop, height: viewport.clientHeight }
+      ));
+    };
+    measure();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(viewport);
+    return () => observer?.disconnect();
+  }, [isVirtual]);
+
+  React.useEffect(() => {
+    if (!isVirtual || !viewportRef.current) {
+      return;
+    }
+    const editor = viewportRef.current.querySelector('.direactree-row-editor, .direactree-row-renaming');
+    if (editor instanceof HTMLElement && editor.offsetHeight > 0 && editor.offsetHeight !== editorHeight) {
+      setEditorHeight(editor.offsetHeight);
+    }
+  });
+
+  /* Actions */
 
   const toggleExpanded = (id: string) => {
     if (isAllExpanded) {
       return;
     }
-    setExpandedNodes(prev => ({ ...prev, [id]: !prev[id] }));
+    setExpanded(id, !expandedNodesForView[id]);
   };
 
-  const expandNode = (id: string) => {
-    setExpandedNodes(prev => (prev[id] ? prev : { ...prev, [id]: true }));
-  };
-
-  const selectVisibleItem = (item: VisibleItem) => {
+  const selectVisibleItem = (item: VisibleItem<unknown>) => {
     pendingFocusId.current = item.id;
+    if (isVirtual) {
+      pendingScrollRef.current = { id: item.id, block: 'nearest', attempts: 0 };
+    }
     setSelectedNodeId(item.id);
+    setRenderTick(tick => tick + 1);
   };
 
   const beginMutation = (
@@ -1121,6 +1414,279 @@ const Direactree = ({
     });
   };
 
+  const permissionsById = (id: string): NodePermissions | null => {
+    const node = findNode(structureRef.current, id);
+    return node ? permissionsFor(node) : null;
+  };
+
+  const handleCreateFolder = (node: NodePath | null) => {
+    if (!onSaveRef.current || (node && !permissionsById(node.id)?.createChild)) {
+      return;
+    }
+    setActionError(null);
+    setSelectedAction({ action: 'createFolder', nodeId: node?.id ?? null });
+    if (node?.id) {
+      setExpanded(node.id, true);
+    }
+    onCreateFolder?.(node);
+  };
+
+  const handleCreateFile = (node: NodePath | null) => {
+    if (!onSaveRef.current || (node && !permissionsById(node.id)?.createChild)) {
+      return;
+    }
+    setActionError(null);
+    setSelectedAction({ action: 'createFile', nodeId: node?.id ?? null });
+    if (node?.id) {
+      setExpanded(node.id, true);
+    }
+    onCreateFile?.(node);
+  };
+
+  const handleRename = (node: NodePath) => {
+    if (!onSaveRef.current || !permissionsById(node.id)?.rename) {
+      return;
+    }
+    setActionError(null);
+    setSelectedAction({ action: 'rename', nodeId: node.id });
+    onRename?.(node);
+  };
+
+  const performDelete = (nodeId: string) => {
+    const node = findNodePath(structureRef.current, nodeId);
+    if (!node) {
+      return;
+    }
+    beginMutation(
+      'delete',
+      () => onDeleteRef.current?.(node),
+      () => setSelectedAction(current => (current?.action === 'delete' ? null : current))
+    );
+  };
+
+  const handleDelete = (node: NodePath) => {
+    if (!onDeleteRef.current || !permissionsById(node.id)?.delete) {
+      return;
+    }
+    if (confirmDelete) {
+      setActionError(null);
+      setSelectedAction({ action: 'delete', nodeId: node.id });
+      return;
+    }
+    performDelete(node.id);
+  };
+
+  const handleSave = (saveProps: SaveProps) => {
+    const liveNode = saveProps.selectedNode?.id
+      ? findNodePath(structureRef.current, saveProps.selectedNode.id)
+      : null;
+    beginMutation(
+      'save',
+      () => onSaveRef.current?.({ ...saveProps, selectedNode: liveNode }),
+      () => setSelectedAction(null)
+    );
+  };
+
+  const handleCancel = () => {
+    if (pendingRef.current) {
+      return;
+    }
+    setActionError(null);
+    setSelectedAction(null);
+  };
+
+  const validateDraft = (
+    raw: string,
+    actionType: 'create' | 'edit',
+    target: NodePath | null,
+    draftType?: NodeType
+  ): DraftCheck => {
+    const tree = structureRef.current;
+    let siblings: AnyNode[];
+    let parent: NodePath | null;
+    let node: NodePath | null = null;
+    let type: NodeType;
+    if (actionType === 'edit' && target) {
+      siblings = locateNode(tree, target.id)?.siblings ?? [];
+      parent = target.parent;
+      node = target;
+      type = target.type;
+    } else {
+      parent = target && target.type === 'file' ? target.parent : target;
+      siblings = parent ? findNode(tree, parent.id)?.children ?? [] : tree;
+      type = draftType ?? 'file';
+    }
+    if (validateNameProp === false) {
+      const name = nameRules.trim ? raw.trim() : raw;
+      return { name, error: name.trim() ? null : messages.nameEmpty };
+    }
+    const result = checkName(raw, { siblings, ignoreId: node?.id ?? null, rules: nameRules, messages });
+    if (!result.ok) {
+      return { name: result.name, error: result.message };
+    }
+    const custom = validateNameProp?.(result.name, { actionType, type, parent, node, siblings });
+    return { name: result.name, error: custom || null };
+  };
+
+  const moveCheck = (source: AnyNode, target: AnyNode): 'ok' | 'blocked' | 'conflict' => {
+    if (!isMoveable(source, target) || !permissionsFor(source).move || !permissionsFor(target).drop) {
+      return 'blocked';
+    }
+    if (hasNameConflict(target.children ?? [], source.name, source.id, nameRules.caseSensitive)) {
+      return 'conflict';
+    }
+    return 'ok';
+  };
+
+  const handleDragStart = (event: React.DragEvent<HTMLLIElement>, id: string) => {
+    const node = findNode(structureRef.current, id);
+    if (!allowDragAndDrop || !onNodeMoveRef.current || pendingRef.current || !node || !permissionsFor(node).move) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    event.stopPropagation();
+    draggedIdRef.current = id;
+    setMenu(null);
+    const payload = JSON.stringify({ id });
+    event.dataTransfer.setData('text/plain', payload);
+    try {
+      event.dataTransfer.setData(DRAG_PAYLOAD_MIME, payload);
+    } catch {
+      // text/plain already holds the id payload.
+    }
+    event.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLLIElement>, node: AnyNode) => {
+    if (!allowDragAndDrop || !onNodeMoveRef.current || pendingRef.current || node.type !== 'folder') {
+      event.stopPropagation();
+      if (node.type !== 'folder') {
+        event.dataTransfer.dropEffect = 'none';
+        setDragOverNodeId(current => (current === null ? current : null));
+      }
+      return;
+    }
+    const sourceId = draggedIdRef.current;
+    const source = sourceId ? findNode(structureRef.current, sourceId) : null;
+    if (source && moveCheck(source, node) !== 'ok') {
+      event.stopPropagation();
+      event.dataTransfer.dropEffect = 'none';
+      setDragOverNodeId(current => (current === null ? current : null));
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = 'move';
+    setDragOverNodeId(current => (current === node.id ? current : node.id));
+  };
+
+  const handleDragLeave = (event: React.DragEvent<HTMLLIElement>, id: string) => {
+    if (!allowDragAndDrop || !onNodeMoveRef.current) {
+      return;
+    }
+    const next = event.relatedTarget;
+    if (next instanceof Node && event.currentTarget.contains(next)) {
+      return;
+    }
+    setDragOverNodeId(current => (current === id ? null : current));
+  };
+
+  const handleDragEnd = () => {
+    draggedIdRef.current = null;
+    setDragOverNodeId(null);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLLIElement>, targetNode: AnyNode) => {
+    event.stopPropagation();
+    setDragOverNodeId(null);
+    const draggedId = draggedIdRef.current;
+    draggedIdRef.current = null;
+    if (!allowDragAndDrop || !onNodeMoveRef.current || targetNode.type !== 'folder' || pendingRef.current) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const sourceId = readDraggedId(event.dataTransfer) ?? draggedId;
+    if (!sourceId || !onNodeMoveRef.current) {
+      return;
+    }
+
+    const sourceNode = findNode(structureRef.current, sourceId);
+    const liveTarget = findNode(structureRef.current, targetNode.id);
+    if (!sourceNode || !liveTarget) {
+      return;
+    }
+    const check = moveCheck(sourceNode, liveTarget);
+    if (check === 'conflict') {
+      setAnnouncement(applyMessage(messagesRef.current.moveConflict, { name: sourceNode.name, target: liveTarget.name }));
+      return;
+    }
+    if (check !== 'ok') {
+      return;
+    }
+
+    setAnnouncement('');
+    setExpanded(liveTarget.id, true);
+    beginMutation(
+      'move',
+      () => onNodeMoveRef.current?.(sourceNode, liveTarget),
+      () => undefined
+    );
+  };
+
+  /* Context menu */
+
+  const openMenu = (nodeId: string, point: { x: number; y: number } | null) => {
+    if (!contextMenuEnabled || !overlayElement || !direactreeRef.current) {
+      return;
+    }
+    const overlayRect = overlayElement.getBoundingClientRect();
+    let x: number;
+    let y: number;
+    if (point) {
+      x = point.x - overlayRect.left;
+      y = point.y - overlayRect.top;
+    } else {
+      const row = direactreeRef.current.querySelector(`[data-node-id="${escapeNodeId(nodeId)}"]`);
+      const rect = row instanceof HTMLElement ? row.getBoundingClientRect() : overlayRect;
+      x = rect.left - overlayRect.left + 16;
+      y = rect.bottom - overlayRect.top + 2;
+    }
+    setSelectedNodeId(nodeId);
+    setMenu({ nodeId, x, y });
+  };
+
+  const closeMenu = (restoreFocus: boolean) => {
+    const nodeId = menu?.nodeId;
+    setMenu(null);
+    if (restoreFocus && nodeId) {
+      pendingFocusId.current = nodeId;
+      setRenderTick(tick => tick + 1);
+    }
+  };
+
+  const buildMenuEntries = (node: AnyNode, path: NodePath): ContextMenuEntry<unknown>[] => {
+    const perms = permissionsFor(node, path);
+    const busy = pendingAction !== null;
+    const defaults: ContextMenuEntry<unknown>[] = [];
+    if (node.type === 'folder') {
+      defaults.push(
+        { id: 'createFolder', label: messages.createFolder, disabled: busy || !canSave || !perms.createChild, onSelect: () => handleCreateFolder(path) },
+        { id: 'createFile', label: messages.createFile, disabled: busy || !canSave || !perms.createChild, onSelect: () => handleCreateFile(path) },
+        'separator'
+      );
+    }
+    defaults.push(
+      { id: 'rename', label: messages.rename, disabled: busy || !canSave || !perms.rename, onSelect: () => handleRename(path) },
+      { id: 'delete', label: messages.delete, danger: true, disabled: busy || !canDelete || !perms.delete, onSelect: () => handleDelete(path) }
+    );
+    return typeof contextMenu === 'function' ? contextMenu(node, defaults, path) : defaults;
+  };
+
+  /* Keyboard */
+
   const handleItemKeyDown = (event: React.KeyboardEvent<HTMLDivElement>, id: string) => {
     if (event.target !== event.currentTarget) {
       return;
@@ -1129,6 +1695,15 @@ const Direactree = ({
     const index = visibleItems.findIndex(item => item.id === id);
     const item = visibleItems[index];
     if (!item) {
+      return;
+    }
+
+    if ((event.key === 'F10' && event.shiftKey) || event.key === 'ContextMenu') {
+      if (contextMenuEnabled) {
+        event.preventDefault();
+        event.stopPropagation();
+        openMenu(item.id, null);
+      }
       return;
     }
 
@@ -1158,7 +1733,7 @@ const Direactree = ({
         event.preventDefault();
         event.stopPropagation();
         if (!expandedNodesForView[item.id]) {
-          expandNode(item.id);
+          setExpanded(item.id, true);
           return;
         }
         const child = visibleItems[index + 1];
@@ -1171,7 +1746,7 @@ const Direactree = ({
         event.preventDefault();
         event.stopPropagation();
         if (!isAllExpanded && item.node.type === 'folder' && expandedNodesForView[item.id]) {
-          setExpandedNodes(prev => ({ ...prev, [item.id]: false }));
+          setExpanded(item.id, false);
           return;
         }
         if (item.parentId) {
@@ -1207,159 +1782,228 @@ const Direactree = ({
         selectVisibleItem(item);
         break;
       }
+      case 'F2': {
+        if (canSave && pendingAction === null) {
+          event.preventDefault();
+          event.stopPropagation();
+          setSelectedNodeId(item.id);
+          handleRename(item.path);
+        }
+        break;
+      }
+      case 'Delete': {
+        if (canDelete && pendingAction === null) {
+          event.preventDefault();
+          event.stopPropagation();
+          setSelectedNodeId(item.id);
+          handleDelete(item.path);
+        }
+        break;
+      }
       default:
         break;
     }
   };
 
-  const handleCreateFolder = (node: NodePath | null) => {
-    if (!onSaveRef.current) {
-      return;
+  /* Search */
+
+  const changeSearch = (value: string) => {
+    if (searchTermProp === undefined) {
+      setInternalSearch(value);
     }
-    setActionError(null);
-    setSelectedAction({ action: 'createFolder', nodeId: node?.id ?? null });
-    if (node?.id) {
-      expandNode(node.id);
-    }
-    onCreateFolder?.(node);
+    onSearchChange?.(value);
   };
 
-  const handleCreateFile = (node: NodePath | null) => {
-    if (!onSaveRef.current) {
-      return;
+  /* Rendering */
+
+  const renderGuides = (depth: number) => {
+    const guides: React.ReactNode[] = [];
+    for (let level = 1; level <= depth; level += 1) {
+      guides.push(
+        <span
+          key={level}
+          className="direactree-guide"
+          aria-hidden="true"
+          style={{ left: `${level * step - validatedIndent}px` }}
+        />
+      );
     }
-    setActionError(null);
-    setSelectedAction({ action: 'createFile', nodeId: node?.id ?? null });
-    if (node?.id) {
-      expandNode(node.id);
-    }
-    onCreateFile?.(node);
+    return guides;
   };
 
-  const handleRename = (node: NodePath) => {
-    if (!onSaveRef.current) {
-      return;
-    }
-    setActionError(null);
-    setSelectedAction({ action: 'rename', nodeId: node.id });
-    onRename?.(node);
-  };
+  const renderEditor = (actionType: 'create' | 'edit', target: NodePath | null) => (
+    <SetNode
+      selectedNode={target}
+      actionType={actionType}
+      onCancel={handleCancel}
+      onSave={handleSave}
+      createType={actionType === 'create' ? createType : undefined}
+      validate={(name) => validateDraft(name, actionType, target, actionType === 'create' ? createType : undefined)}
+      pending={pendingAction !== null}
+      error={saveError}
+      messages={messages}
+    />
+  );
 
-  const performDelete = (nodeId: string) => {
-    const node = findNodePath(structureRef.current, nodeId);
-    if (!node) {
-      return;
-    }
-    beginMutation(
-      'delete',
-      () => onDeleteRef.current?.(node),
-      () => setSelectedAction(current => (current?.action === 'delete' ? null : current))
+  const renderNodeRow = (item: VisibleItem<unknown>) => {
+    const node = item.node;
+    const isSelected = selectedNodeId === node.id;
+    const isRenaming = renamingId === node.id;
+    const isExpanded = node.type === 'folder' && !!expandedNodesForView[node.id];
+    const perms = permissionsFor(node, item.path);
+    const rowState: RowRenderState = { expanded: isExpanded, selected: isSelected, depth: item.depth };
+    const isMatch = Boolean(searchResult?.matches[node.id]);
+    const highlighted = isMatch ? highlightName(node.name, term) : node.name;
+    const badge = renderBadge ? renderBadge(node, rowState) : null;
+    const rowClass = [
+      'direactree-item',
+      'direactree-row',
+      isSelected ? 'direactree-item-selected' : '',
+      dragOverNodeId === node.id ? 'direactree-item-dragover' : '',
+      isMatch ? 'direactree-item-match' : '',
+      isRenaming ? 'direactree-row-renaming' : '',
+      getRowClassName?.(node, rowState) ?? '',
+    ].filter(Boolean).join(' ');
+
+    return (
+      <li
+        key={node.id}
+        role="none"
+        draggable={canDrag && perms.move && !isRenaming}
+        className={rowClass}
+        data-locked={node.locked ? 'true' : undefined}
+        style={{
+          paddingLeft: `${item.depth * step}px`,
+          height: isVirtual && !isRenaming ? `${rowHeight}px` : undefined,
+        }}
+        onDragStart={(event) => handleDragStart(event, node.id)}
+        onDragOver={(event) => handleDragOver(event, node)}
+        onDragLeave={(event) => handleDragLeave(event, node.id)}
+        onDragEnd={handleDragEnd}
+        onDrop={(event) => handleDrop(event, node)}
+      >
+        {renderGuides(item.depth)}
+        <div className="direactree-item-anchor">
+          {isRenaming ? renderEditor('edit', actionNode) : (
+            <div
+              role="treeitem"
+              data-node-id={node.id}
+              aria-label={node.name}
+              aria-selected={isSelected}
+              aria-level={item.depth + 1}
+              aria-expanded={node.type === 'folder' ? isExpanded : undefined}
+              aria-posinset={item.posinset}
+              aria-setsize={item.setsize}
+              aria-busy={loadState[node.id]?.status === 'loading' ? true : undefined}
+              tabIndex={tabTargetId === node.id ? 0 : -1}
+              className={`direactree-item-container ${isSelected ? 'selected' : ''}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                setSelectedNodeId(node.id);
+              }}
+              onContextMenu={contextMenuEnabled ? (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                openMenu(node.id, { x: event.clientX, y: event.clientY });
+              } : undefined}
+              onKeyDown={(event) => handleItemKeyDown(event, node.id)}
+            >
+              {node.type === 'folder' ? (
+                <button
+                  type="button"
+                  className="direactree-item-button"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleExpanded(node.id);
+                  }}
+                >
+                  {isExpanded ? '▼' : '►'}
+                </button>
+              ) : (
+                <span className="direactree-item-button" aria-hidden="true" />
+              )}
+              {renderIcon ? (
+                <span className="direactree-item-icon" aria-hidden="true">{renderIcon(node, rowState)}</span>
+              ) : null}
+              <span className="direactree-item-name" title={node.name}>
+                {renderLabel ? renderLabel(node, { ...rowState, term, highlighted }) : highlighted}
+              </span>
+              {badge !== null && badge !== undefined && badge !== false ? (
+                <span className="direactree-item-badge">{badge}</span>
+              ) : null}
+            </div>
+          )}
+          {selectedAction?.action === 'delete' && selectedAction.nodeId === node.id && (
+            <DeleteConfirm
+              nodeId={node.id}
+              name={node.name}
+              nodeType={node.type}
+              pending={pendingAction === 'delete'}
+              disabled={pendingAction !== null}
+              error={deleteError ?? null}
+              messages={messages}
+              onConfirm={() => performDelete(node.id)}
+              onCancel={handleCancel}
+            />
+          )}
+        </div>
+      </li>
     );
   };
 
-  const handleDelete = (node: NodePath) => {
-    if (!onDeleteRef.current) {
-      return;
+  const renderRow = (row: Row) => {
+    if (row.kind === 'node') {
+      return renderNodeRow(row.item);
     }
-    if (confirmDelete) {
-      setActionError(null);
-      setSelectedAction({ action: 'delete', nodeId: node.id });
-      return;
+    if (row.kind === 'editor') {
+      return (
+        <li key={row.key} role="none" className="direactree-row direactree-row-editor" style={{ paddingLeft: `${row.depth * step}px` }}>
+          {renderGuides(row.depth)}
+          {renderEditor('create', actionNode)}
+        </li>
+      );
     }
-    performDelete(node.id);
-  };
-
-  const handleSave = (props: SaveProps) => {
-    const liveNode = props.selectedNode?.id
-      ? findNodePath(structureRef.current, props.selectedNode.id)
-      : null;
-    beginMutation(
-      'save',
-      () => onSaveRef.current?.({ ...props, selectedNode: liveNode }),
-      () => setSelectedAction(null)
+    return (
+      <li
+        key={row.key}
+        role="none"
+        className="direactree-row direactree-status-row"
+        style={{ paddingLeft: `${row.depth * step}px`, height: isVirtual ? `${rowHeight}px` : undefined }}
+      >
+        {renderGuides(row.depth)}
+        {row.state.status === 'loading' ? (
+          <span className="direactree-status" role="status">
+            <span className="direactree-spinner" aria-hidden="true" />
+            {messages.loading}
+          </span>
+        ) : (
+          <span className="direactree-status direactree-status-error">
+            <span role="alert">{row.state.message}</span>
+            <button type="button" className="direactree-retry-button" onClick={() => retryLoad(row.nodeId)}>
+              {messages.retry}
+            </button>
+          </span>
+        )}
+      </li>
     );
   };
 
-  const handleCancel = () => {
-    if (pendingRef.current) {
-      return;
-    }
-    setActionError(null);
-    setSelectedAction(null);
-  };
+  const shownRows = isVirtual ? rows.slice(windowStart, windowEnd) : rows;
+  const listStyle: React.CSSProperties | undefined = layout
+    ? ({
+      paddingTop: `${layout.offsets[windowStart]}px`,
+      paddingBottom: `${layout.total - layout.offsets[windowEnd]}px`,
+      '--direactree-row-height': `${rowHeight}px`,
+    } as React.CSSProperties)
+    : undefined;
+  const viewportStyle: React.CSSProperties | undefined = virtualConfig?.height !== undefined
+    ? { height: typeof virtualConfig.height === 'number' ? `${virtualConfig.height}px` : virtualConfig.height }
+    : undefined;
 
-  const handleDragStart = (event: React.DragEvent<HTMLLIElement>, id: string) => {
-    if (!allowDragAndDrop || !onNodeMoveRef.current || pendingRef.current) {
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-    event.stopPropagation();
-    const payload = JSON.stringify({ id });
-    event.dataTransfer.setData('text/plain', payload);
-    try {
-      event.dataTransfer.setData(DRAG_PAYLOAD_MIME, payload);
-    } catch {
-      // text/plain already holds the id payload.
-    }
-    event.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (event: React.DragEvent<HTMLLIElement>, node: TreeNode) => {
-    if (!allowDragAndDrop || !onNodeMoveRef.current || pendingRef.current || node.type !== 'folder') {
-      event.stopPropagation();
-      if (node.type !== 'folder') {
-        event.dataTransfer.dropEffect = 'none';
-        setDragOverNodeId(current => (current === null ? current : null));
-      }
-      return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    event.dataTransfer.dropEffect = 'move';
-    setDragOverNodeId(current => (current === node.id ? current : node.id));
-  };
-
-  const handleDragLeave = (event: React.DragEvent<HTMLLIElement>, id: string) => {
-    if (!allowDragAndDrop || !onNodeMoveRef.current) {
-      return;
-    }
-    const next = event.relatedTarget;
-    if (next instanceof Node && event.currentTarget.contains(next)) {
-      return;
-    }
-    setDragOverNodeId(current => (current === id ? null : current));
-  };
-
-  const handleDrop = (event: React.DragEvent<HTMLLIElement>, targetNode: TreeNode) => {
-    event.stopPropagation();
-    setDragOverNodeId(null);
-    if (!allowDragAndDrop || !onNodeMoveRef.current || targetNode.type !== 'folder' || pendingRef.current) {
-      return;
-    }
-
-    event.preventDefault();
-
-    const sourceId = readDraggedId(event.dataTransfer);
-    if (!sourceId || !onNodeMoveRef.current) {
-      return;
-    }
-
-    const sourceNode = findNodeById(structureRef.current, sourceId);
-    const liveTarget = findNodeById(structureRef.current, targetNode.id);
-    if (!sourceNode || !liveTarget || !isMoveable(sourceNode, liveTarget)) {
-      return;
-    }
-
-    expandNode(liveTarget.id);
-    beginMutation(
-      'move',
-      () => onNodeMoveRef.current?.(sourceNode, liveTarget),
-      () => undefined
-    );
-  };
-
-  const [overlayElement, setOverlayElement] = React.useState<HTMLDivElement | null>(null);
+  const menuNode = menu ? findNode(structure, menu.nodeId) : null;
+  const menuPath = menu ? findNodePath(structure, menu.nodeId) : null;
 
   return (
     <DireactreeOverlayContext.Provider value={overlayElement}>
@@ -1367,6 +2011,7 @@ const Direactree = ({
       className={[
         'direactree',
         deleteConfirmationOpen ? 'direactree-confirm-open' : '',
+        isVirtual ? 'direactree-virtualized' : '',
         className,
       ].filter(Boolean).join(' ')}
       data-direactree-theme={theme}
@@ -1383,52 +2028,93 @@ const Direactree = ({
         <Toolbox
           selectedNode={selectedNode}
           toolboxIcons={toolboxIcons}
+          toolboxActions={toolboxActions}
           onCreateFolder={handleCreateFolder}
           onCreateFile={handleCreateFile}
           onRename={handleRename}
           onDelete={handleDelete}
           toolboxSticky={toolboxSticky}
           pending={pendingAction !== null}
-          canSave={canSave}
-          canDelete={canDelete}
+          canCreate={canCreateHere}
+          canRename={canSave && selectedPerms.rename}
+          canDelete={canDelete && selectedPerms.delete}
           deleteButtonRef={deleteButtonRef}
           messages={messages}
         />
       )}
-      <div className="direactree-viewport">
-      <DireactreeNode
-        node={structure}
-        depth={0}
-        indent={validatedIndent}
-        selectedNodeId={selectedNodeId}
-        setSelectedNodeId={setSelectedNodeId}
-        selectedAction={selectedAction}
-        actionNode={actionNode}
-        onSave={handleSave}
-        onCancel={handleCancel}
-        onConfirmDelete={performDelete}
-        deletePending={pendingAction === 'delete'}
-        actionsLocked={pendingAction !== null}
-        deleteError={deleteError}
-        expandedNodes={expandedNodesForView}
-        toggleExpanded={toggleExpanded}
-        onItemKeyDown={handleItemKeyDown}
-        tabTargetId={tabTargetId}
-        allowDragAndDrop={canDrag}
-        dragOverNodeId={dragOverNodeId}
-        pendingSave={pendingAction !== null}
-        saveError={saveError}
-        messages={messages}
-        onDragStartNode={handleDragStart}
-        onDragOverNode={handleDragOver}
-        onDragLeaveNode={handleDragLeave}
-        onDropNode={handleDrop}
-      />
+      {showSearch && (
+        <div className="direactree-search">
+          <input
+            type="search"
+            className="direactree-search-input"
+            aria-label={messages.search}
+            placeholder={messages.searchPlaceholder}
+            value={rawTerm}
+            onChange={(event) => changeSearch(event.target.value)}
+            onKeyDown={(event) => {
+              if ((event.key === 'ArrowDown' || event.key === 'Enter') && visibleItems.length) {
+                event.preventDefault();
+                const first = (searchResult && visibleItems.find(item => searchResult.matches[item.id])) || visibleItems[0];
+                selectVisibleItem(first);
+              } else if (event.key === 'Escape' && rawTerm) {
+                event.preventDefault();
+                event.stopPropagation();
+                changeSearch('');
+              }
+            }}
+          />
+        </div>
+      )}
+      <div
+        className="direactree-viewport"
+        ref={viewportRef}
+        style={viewportStyle}
+        onScroll={(event) => {
+          if (menu) {
+            setMenu(null);
+          }
+          if (isVirtual) {
+            const top = event.currentTarget.scrollTop;
+            setViewportState(prev => (prev.top === top ? prev : { ...prev, top }));
+          }
+        }}
+      >
+        <ul
+          className="direactree-list"
+          role="tree"
+          aria-label={messages.directoryTree}
+          style={listStyle}
+        >
+          {shownRows.map(renderRow)}
+        </ul>
+        {searchResult && visibleItems.length === 0 ? (
+          <p className="direactree-empty">{messages.noResults}</p>
+        ) : null}
       </div>
       <div className="direactree-overlay" ref={setOverlayElement} />
+      <div className="direactree-sr-only" aria-live="polite">{announcement}</div>
+      {menu && menuNode && menuPath ? (
+        <ContextMenu
+          label={applyMessage(messages.contextMenu, { name: menuNode.name })}
+          entries={buildMenuEntries(menuNode, menuPath)}
+          x={menu.x}
+          y={menu.y}
+          onClose={closeMenu}
+          onSelect={(item) => {
+            setMenu(null);
+            item.onSelect(menuNode, menuPath);
+          }}
+        />
+      ) : null}
     </div>
     </DireactreeOverlayContext.Provider>
   );
-};
+}
 
-export default Direactree;
+const Direactree = React.forwardRef<DireactreeHandle, DireactreeProps<unknown>>(DireactreeInner);
+Direactree.displayName = 'Direactree';
+
+/** Directory tree. Pass a `ref` to get the `DireactreeHandle` methods. */
+export default Direactree as <T = unknown>(
+  props: DireactreeProps<T> & React.RefAttributes<DireactreeHandle>
+) => React.ReactElement | null;
