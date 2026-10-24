@@ -10,6 +10,10 @@
 /dist
 /build
 /storybook-static
+*.tgz
+
+# React 17 test install
+/test/react17/node_modules
 
 # misc
 .DS_Store

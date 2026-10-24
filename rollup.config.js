@@ -1,30 +1,29 @@
+import fs from 'fs';
+import path from 'path';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from 'rollup-plugin-typescript2';
 import peerDepsExternal from 'rollup-plugin-peer-deps-external';
 import postcss from 'rollup-plugin-postcss';
-import pkg from './package.json';
 
-// 'use client' direktifini koruyan özel plugin
-const preserveUseClient = () => {
+function extractStylesheet() {
   return {
-    name: 'preserve-use-client',
-    renderChunk(code) {
-      // Eğer 'use client' direktifi yoksa, kodu olduğu gibi döndür
-      if (!code.includes("'use client'") && !code.includes('"use client"')) {
-        return null;
-      }
-      return null;
-    }
+    name: 'extract-direactree-css',
+    generateBundle() {
+      const source = fs.readFileSync(path.resolve('src/components/Direactree/styles.css'));
+      const file = path.resolve('dist/direactree.css');
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, source);
+    },
   };
-};
+}
 
 export default [
   {
     input: 'src/index.ts',
     output: [
       {
-        file: pkg.main,
+        file: 'dist/index.cjs',
         format: 'cjs',
         exports: 'named',
         sourcemap: true,
@@ -32,7 +31,7 @@ export default [
         inlineDynamicImports: true
       },
       {
-        file: pkg.module,
+        file: 'dist/index.mjs',
         format: 'esm',
         exports: 'named',
         sourcemap: true,
@@ -40,7 +39,6 @@ export default [
       },
     ],
     plugins: [
-      preserveUseClient(),
       peerDepsExternal(),
       resolve({
         extensions: ['.js', '.jsx', '.ts', '.tsx']
@@ -63,6 +61,7 @@ export default [
           exclude: ['**/*.stories.tsx', '**/*.test.tsx'],
         },
       }),
+      extractStylesheet(),
     ],
     external: ['react', 'react-dom']
   },
@@ -70,7 +69,7 @@ export default [
     input: 'src/next.ts',
     output: [
       {
-        file: 'dist/next.js',
+        file: 'dist/next.cjs',
         format: 'cjs',
         exports: 'named',
         sourcemap: true,
@@ -79,7 +78,7 @@ export default [
         banner: "'use client';"
       },
       {
-        file: 'dist/next.esm.js',
+        file: 'dist/next.mjs',
         format: 'esm',
         exports: 'named',
         sourcemap: true,
@@ -88,7 +87,6 @@ export default [
       },
     ],
     plugins: [
-      preserveUseClient(),
       peerDepsExternal(),
       resolve({
         extensions: ['.js', '.jsx', '.ts', '.tsx']

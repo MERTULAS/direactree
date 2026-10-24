@@ -22,6 +22,11 @@ export default {
     toolboxSticky: { control: 'boolean' },
     allowDragAndDrop: { control: 'boolean' },
     isAllExpanded: { control: 'boolean' },
+    confirmDelete: { control: 'boolean' },
+    theme: {
+      control: { type: 'select' },
+      options: ['system', 'light', 'dark'],
+    },
   },
 } as ComponentMeta<typeof Direactree>;
 
@@ -151,5 +156,7 @@ Default.args = {
   },
   toolboxSticky: false,
   allowDragAndDrop: true,
-  isAllExpanded: false
+  isAllExpanded: false,
+  confirmDelete: false,
+  theme: 'system',
 }; 
