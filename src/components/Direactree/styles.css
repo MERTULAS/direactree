@@ -1,68 +1,181 @@
 .direactree {
-  padding: 20px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
-  background-color: #ffffff;
-  color: #2c3e50;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s ease;
-} 
+  --direactree-bg: #ffffff;
+  --direactree-fg: #2c3e50;
+  --direactree-border: #64748b;
+  --direactree-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  --direactree-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --direactree-line: #94a3b8;
+  --direactree-line-hover: #475569;
+  --direactree-hover: #f8fafc;
+  --direactree-icon: #64748b;
+  --direactree-icon-hover: #475569;
+  --direactree-name: #334155;
+  --direactree-name-hover: #1e293b;
+  --direactree-toolbox-bg: #f8fafc;
+  --direactree-toolbox-border: #64748b;
+  --direactree-button-bg: #ffffff;
+  --direactree-button-border: #475569;
+  --direactree-button-hover: #f1f5f9;
+  --direactree-selected: #e0f2fe;
+  --direactree-input-border: #475569;
+  --direactree-input-bg: #ffffff;
+  --direactree-save-bg: #616161;
+  --direactree-save-fg: #ffffff;
+  --direactree-cancel-hover: #e2e8f0;
+  --direactree-dragover: rgba(0, 120, 215, 0.1);
+  --direactree-dragover-border: #0078d7;
+  --direactree-focus: #0284c7;
+  --direactree-confirm-bg: #ffffff;
+  --direactree-confirm-border: #64748b;
+  --direactree-confirm-shadow: 0 14px 32px rgba(15, 23, 42, 0.18), 0 3px 10px rgba(15, 23, 42, 0.12);
+  --direactree-danger: #991b1b;
+  --direactree-danger-bg: #b91c1c;
+  --direactree-danger-fg: #ffffff;
+  --direactree-danger-border: #7f1d1d;
+  --direactree-danger-hover: #991b1b;
 
-.direactree-loading {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
   padding: 20px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--direactree-border);
   border-radius: 8px;
-  background-color: #f8f9fa;
-  color: #6c757d;
-  text-align: center;
-  font-size: 14px;
-  min-height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background-color: var(--direactree-bg);
+  color: var(--direactree-fg);
+  box-shadow: var(--direactree-shadow);
+  transition: box-shadow 0.2s ease;
+  position: relative;
+  overflow: visible;
+}
+
+.direactree-viewport {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.direactree-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.direactree-confirm-open {
+  z-index: 101;
+}
+
+.direactree[data-direactree-theme="light"] {
+  color-scheme: light;
+}
+
+.direactree[data-direactree-theme="system"] {
+  color-scheme: light dark;
+}
+
+.direactree[data-direactree-theme="dark"] {
+  color-scheme: dark;
+  --direactree-bg: #0f172a;
+  --direactree-fg: #e2e8f0;
+  --direactree-border: #94a3b8;
+  --direactree-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+  --direactree-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --direactree-line: #64748b;
+  --direactree-line-hover: #cbd5e1;
+  --direactree-hover: #1e293b;
+  --direactree-icon: #94a3b8;
+  --direactree-icon-hover: #e2e8f0;
+  --direactree-name: #e2e8f0;
+  --direactree-name-hover: #f8fafc;
+  --direactree-toolbox-bg: #1e293b;
+  --direactree-toolbox-border: #94a3b8;
+  --direactree-button-bg: #0f172a;
+  --direactree-button-border: #cbd5e1;
+  --direactree-button-hover: #334155;
+  --direactree-selected: #0c4a6e;
+  --direactree-input-border: #cbd5e1;
+  --direactree-input-bg: #0f172a;
+  --direactree-save-bg: #334155;
+  --direactree-save-fg: #f8fafc;
+  --direactree-cancel-hover: #334155;
+  --direactree-dragover: rgba(56, 189, 248, 0.16);
+  --direactree-dragover-border: #7dd3fc;
+  --direactree-focus: #38bdf8;
+  --direactree-confirm-bg: #1e293b;
+  --direactree-confirm-border: #94a3b8;
+  --direactree-confirm-shadow: 0 18px 38px rgba(0, 0, 0, 0.52), 0 4px 12px rgba(0, 0, 0, 0.36);
+  --direactree-danger: #fecaca;
+  --direactree-danger-bg: #b91c1c;
+  --direactree-danger-fg: #ffffff;
+  --direactree-danger-border: #fecaca;
+  --direactree-danger-hover: #991b1b;
+}
+
+@media (prefers-color-scheme: dark) {
+  .direactree[data-direactree-theme="system"] {
+    --direactree-bg: #0f172a;
+    --direactree-fg: #e2e8f0;
+    --direactree-border: #94a3b8;
+    --direactree-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    --direactree-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.45);
+    --direactree-line: #64748b;
+    --direactree-line-hover: #cbd5e1;
+    --direactree-hover: #1e293b;
+    --direactree-icon: #94a3b8;
+    --direactree-icon-hover: #e2e8f0;
+    --direactree-name: #e2e8f0;
+    --direactree-name-hover: #f8fafc;
+    --direactree-toolbox-bg: #1e293b;
+    --direactree-toolbox-border: #94a3b8;
+    --direactree-button-bg: #0f172a;
+    --direactree-button-border: #cbd5e1;
+    --direactree-button-hover: #334155;
+    --direactree-selected: #0c4a6e;
+    --direactree-input-border: #cbd5e1;
+    --direactree-input-bg: #0f172a;
+    --direactree-save-bg: #334155;
+    --direactree-save-fg: #f8fafc;
+    --direactree-cancel-hover: #334155;
+    --direactree-dragover: rgba(56, 189, 248, 0.16);
+    --direactree-dragover-border: #7dd3fc;
+    --direactree-focus: #38bdf8;
+    --direactree-confirm-bg: #1e293b;
+    --direactree-confirm-border: #94a3b8;
+    --direactree-confirm-shadow: 0 18px 38px rgba(0, 0, 0, 0.52), 0 4px 12px rgba(0, 0, 0, 0.36);
+    --direactree-danger: #fecaca;
+    --direactree-danger-bg: #b91c1c;
+    --direactree-danger-fg: #ffffff;
+    --direactree-danger-border: #fecaca;
+    --direactree-danger-hover: #991b1b;
+  }
 }
 
 .direactree:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--direactree-shadow-hover);
 }
 
 .direactree-list {
   list-style-type: none;
   margin-left: 8px;
   position: relative;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-right: 0;
 }
 
 .direactree-item-children {
-  overflow: hidden;
-  transition: all 0.3s ease;
+  overflow: visible;
 }
 
 .direactree-item-children .direactree-list {
-  border-left: 1px solid #e8e8e8;
-  transition: border-color 0.2s ease, transform 0.3s ease, opacity 0.3s ease;
-  transform-origin: top;
+  border-left: 1px solid var(--direactree-line);
+  transition: border-color 0.2s ease;
 }
 
 .direactree-item-children .direactree-list:hover {
-  border-left-color: #cbd5e1;
-}
-
-.direactree-item-children.collapsed {
-  height: 0;
-  opacity: 0;
-}
-
-.direactree-item-children.expanded {
-  height: auto;
-  opacity: 1;
-}
-
-.direactree-item-children.collapsed .direactree-list {
-  transform: scaleY(0);
-}
-
-.direactree-item-children.expanded .direactree-list {
-  transform: scaleY(1);
+  border-left-color: var(--direactree-line-hover);
 }
 
 .direactree-item-container {
@@ -72,36 +185,52 @@
   margin-bottom: 4px;
   padding: 6px 0;
   border-radius: 6px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
   position: relative;
 }
 
-.direactree-item-container:hover {
-  background-color: #f8fafc;
+.direactree-item-anchor {
+  position: relative;
 }
 
-.direactree-item-container.selected {
-  background-color: #f1f5f9;
+.direactree-item-container:hover,
+.direactree-item-container.direactree-force-hover {
+  background-color: var(--direactree-hover);
+}
+
+.direactree-item-container:focus-visible,
+.direactree-item-container.direactree-force-focus {
+  outline: 2px solid var(--direactree-focus);
+  outline-offset: 2px;
 }
 
 .direactree-item-button {
   margin-right: 8px;
-  color: #64748b;
+  color: var(--direactree-icon);
   font-size: 12px;
-  transition: transform 0.2s ease;
+  transition: color 0.2s ease;
   width: 16px;
   height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
 }
 
-.direactree-item-container:hover .direactree-item-button {
-  color: #475569;
+button.direactree-item-button {
+  cursor: pointer;
+}
+
+.direactree-item-container:hover .direactree-item-button,
+.direactree-item-container.direactree-force-hover .direactree-item-button {
+  color: var(--direactree-icon-hover);
 }
 
 .direactree-item-name {
-  color: #334155;
+  color: var(--direactree-name);
   font-size: 14px;
   transition: color 0.2s ease;
   white-space: nowrap;
@@ -110,19 +239,23 @@
   max-width: 200px;
 }
 
-.direactree-item-container:hover .direactree-item-name {
-  color: #1e293b;
+.direactree-item-container:hover .direactree-item-name,
+.direactree-item-container.direactree-force-hover .direactree-item-name {
+  color: var(--direactree-name-hover);
 }
 
 .direactree-toolbox {
+  box-sizing: border-box;
   display: flex;
   gap: 8px;
+  max-width: 100%;
+  min-width: 0;
   padding: 12px;
   margin-bottom: 12px;
-  background-color: #f8fafc;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background-color: var(--direactree-toolbox-bg);
+  border: 1px solid var(--direactree-toolbox-border);
   border-radius: 6px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .direactree-toolbox-sticky {
@@ -132,23 +265,45 @@
 }
 
 .direactree-toolbox-button {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 36px;
+  flex: 0 1 36px;
   width: 36px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  min-width: 0;
+  height: 36px;
+  border: 1px solid var(--direactree-button-border);
   border-radius: 6px;
-  background-color: white;
+  background-color: var(--direactree-button-bg);
+  color: var(--direactree-fg);
   cursor: pointer;
   font-size: 16px;
   padding: 8px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease;
   position: relative;
 }
 
-.direactree-toolbox-button:hover {
-  background-color: #f9f9f9;
+.direactree-toolbox-button > * {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.direactree-toolbox-button:hover,
+.direactree-toolbox-button.direactree-force-hover {
+  background-color: var(--direactree-button-hover);
+}
+
+.direactree-toolbox-button:focus-visible,
+.direactree-toolbox-button.direactree-force-focus,
+.direactree-edit-node button:focus-visible,
+.direactree-edit-node button.direactree-force-focus,
+.direactree-edit-node input:focus-visible,
+.direactree-edit-node input.direactree-force-focus,
+.direactree-confirm button:focus-visible,
+.direactree-confirm button.direactree-force-focus {
+  outline: 2px solid var(--direactree-focus);
+  outline-offset: 2px;
 }
 
 .direactree-toolbox-button:disabled {
@@ -159,60 +314,193 @@
 }
 
 .direactree-item-selected > .direactree-item-container {
-  background-color: #e0f2fe;
+  background-color: var(--direactree-selected);
   border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-weight: 600;
+}
+
+.direactree-item-selected > .direactree-item-anchor > .direactree-item-container {
+  background-color: var(--direactree-selected);
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.direactree-editor {
+  box-sizing: border-box;
+  min-width: 0;
+  margin: 8px 0;
 }
 
 .direactree-edit-node {
   display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 8px;
-  margin: 8px 0;
-  animation: fadeIn 0.2s ease;
+  box-sizing: border-box;
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+  animation: direactree-fade-in 0.2s ease;
+}
+
+.direactree-confirm {
+  position: absolute;
+  z-index: 200;
+  top: calc(100% + 4px);
+  inset-inline-start: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  box-sizing: border-box;
+  width: clamp(220px, 100%, 320px);
+  max-width: calc(100vw - 32px);
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--direactree-confirm-border);
+  border-radius: 8px;
+  background-color: var(--direactree-confirm-bg);
+  color: var(--direactree-fg);
+  box-shadow: var(--direactree-confirm-shadow);
+  animation: direactree-fade-in 0.18s ease;
+}
+
+.direactree-confirm::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  inset-inline-start: 18px;
+  width: 10px;
+  height: 10px;
+  border-top: 1px solid var(--direactree-confirm-border);
+  border-left: 1px solid var(--direactree-confirm-border);
+  background-color: var(--direactree-confirm-bg);
+  transform: rotate(45deg);
+}
+
+.direactree-overlay .direactree-confirm {
+  pointer-events: auto;
+}
+
+.direactree-confirm[data-placement="top"]::before {
+  top: auto;
+  bottom: -6px;
+  transform: rotate(225deg);
+}
+
+.direactree-confirm-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+.direactree-confirm-title {
+  margin: 0;
+  color: var(--direactree-name);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.direactree-confirm-description {
+  margin: 0;
+  color: var(--direactree-icon);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.direactree-confirm-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.direactree-error {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--direactree-danger);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .direactree-edit-node input {
+  box-sizing: border-box;
+  flex: 0 0 200px;
   padding: 8px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--direactree-input-border);
   border-radius: 6px;
   font-size: 14px;
-  transition: all 0.2s ease;
-  width: 200px;
-  background-color: white;
-  color: #334155;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  background-color: var(--direactree-input-bg);
+  color: var(--direactree-name);
 }
 
 .direactree-edit-node input:focus {
   outline: none;
-  box-shadow: 0 0 5px 3px rgba(150, 150, 150, 0.1);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
 }
 
-.direactree-edit-node button {
+.direactree-edit-node button,
+.direactree-confirm button {
   padding: 8px 16px;
-  border: none;
+  border: 1px solid var(--direactree-button-border);
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  background-color: #f8fafc;
-  color: #334155;
-  transition: all 0.2s ease;
+  background-color: var(--direactree-toolbox-bg);
+  color: var(--direactree-name);
+  transition: background-color 0.2s ease;
   min-width: 80px;
 }
 
+.direactree-confirm button {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding-inline: 12px;
+}
+
+.direactree-edit-node button {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+}
+
 .direactree-edit-node button:first-of-type {
-  background-color: #616161;
-  color: white;
+  background-color: var(--direactree-save-bg);
+  color: var(--direactree-save-fg);
+  border-color: var(--direactree-button-border);
 }
 
 .direactree-edit-node button:first-of-type:hover {
-  background-color: #616161;
+  background-color: var(--direactree-save-bg);
 }
 
-.direactree-edit-node button:last-of-type:hover {
-  background-color: #e2e8f0;
+.direactree-confirm button.direactree-danger-button {
+  background-color: var(--direactree-danger-bg);
+  color: var(--direactree-danger-fg);
+  border-color: var(--direactree-danger-border);
 }
 
-@keyframes fadeIn {
+.direactree-confirm button.direactree-danger-button:hover,
+.direactree-confirm button.direactree-danger-button.direactree-force-hover {
+  background-color: var(--direactree-danger-hover);
+  color: var(--direactree-danger-fg);
+}
+
+.direactree-edit-node button.direactree-cancel-button:hover,
+.direactree-confirm button.direactree-cancel-button:hover {
+  background-color: var(--direactree-cancel-hover);
+}
+
+.direactree-edit-node button:disabled,
+.direactree-edit-node input:disabled,
+.direactree-confirm button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes direactree-fade-in {
   from {
     opacity: 0;
     transform: translateY(-4px);
@@ -223,10 +511,11 @@
   }
 }
 
-/* Drag and Drop Styles */
-.direactree-item-dragover {
-  background-color: rgba(0, 120, 215, 0.1);
-  border: 1px dashed #0078d7;
+.direactree-item-dragover > .direactree-item-container,
+.direactree-item-dragover > .direactree-item-anchor > .direactree-item-container {
+  background-color: var(--direactree-dragover);
+  outline: 2px dashed var(--direactree-dragover-border);
+  outline-offset: -2px;
   border-radius: 4px;
 }
 
@@ -238,4 +527,95 @@
   cursor: grabbing;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .direactree,
+  .direactree-item-children .direactree-list,
+  .direactree-item-container,
+  .direactree-item-button,
+  .direactree-item-name,
+  .direactree-toolbox,
+  .direactree-toolbox-button,
+  .direactree-edit-node,
+  .direactree-confirm,
+  .direactree-edit-node input,
+  .direactree-edit-node button,
+  .direactree-confirm button {
+    transition: none;
+    animation: none;
+  }
+}
 
+@media (forced-colors: active) {
+  .direactree {
+    background: Canvas;
+    color: CanvasText;
+    border: 1px solid CanvasText;
+    box-shadow: none;
+  }
+
+  .direactree-item-container,
+  .direactree-toolbox,
+  .direactree-toolbox-button,
+  .direactree-edit-node input,
+  .direactree-edit-node button,
+  .direactree-confirm,
+  .direactree-confirm button {
+    background: Canvas;
+    color: CanvasText;
+    border-color: ButtonBorder;
+    box-shadow: none;
+  }
+
+  .direactree-confirm::before {
+    border-color: CanvasText;
+    background: Canvas;
+  }
+
+  .direactree-item-selected > .direactree-item-container {
+    background: Highlight;
+    color: HighlightText;
+    font-weight: 700;
+    outline: 2px solid Highlight;
+  }
+
+  .direactree-item-selected > .direactree-item-anchor > .direactree-item-container {
+    background: Highlight;
+    color: HighlightText;
+    font-weight: 700;
+    outline: 2px solid Highlight;
+  }
+
+  .direactree-item-selected > .direactree-item-container .direactree-item-name,
+  .direactree-item-selected > .direactree-item-container .direactree-item-button,
+  .direactree-item-selected > .direactree-item-anchor > .direactree-item-container .direactree-item-name,
+  .direactree-item-selected > .direactree-item-anchor > .direactree-item-container .direactree-item-button {
+    color: HighlightText;
+  }
+
+  .direactree-item-dragover > .direactree-item-container,
+  .direactree-item-dragover > .direactree-item-anchor > .direactree-item-container {
+    outline: 2px dashed CanvasText;
+    background: Canvas;
+  }
+
+  .direactree-item-container:focus-visible,
+  .direactree-item-container.direactree-force-focus,
+  .direactree-toolbox-button:focus-visible,
+  .direactree-edit-node input:focus-visible,
+  .direactree-edit-node button:focus-visible,
+  .direactree-confirm button:focus-visible {
+    outline: 2px solid Highlight;
+  }
+
+  .direactree-error {
+    color: CanvasText;
+    text-decoration: underline;
+  }
+
+  .direactree-confirm button.direactree-danger-button {
+    background: ButtonFace;
+    color: ButtonText;
+    border: 2px solid ButtonText;
+    font-weight: 700;
+  }
+}
