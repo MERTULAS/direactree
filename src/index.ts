@@ -1,2 +1,2 @@
-export { default, defaultDireactreeMessages } from './components/Direactree/index';
-export type { DireactreeProps, DireactreeMutation, DireactreeTheme, DireactreeMessages, TreeNode, NodePath, SaveProps, ToolboxIcons } from './components/Direactree/index';
+export * from './components/Direactree/index';
+export { default } from './components/Direactree/index';
