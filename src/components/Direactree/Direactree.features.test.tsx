@@ -528,7 +528,7 @@ describe('row and menu customization', () => {
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeDisabled();
     fireEvent.click(screen.getByRole('treeitem', { name: 'lib' }));
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
-    expect(onClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'lib' }));
+    expect(onClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'lib' }), ['lib']);
   });
 });
 

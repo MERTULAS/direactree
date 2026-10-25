@@ -53,14 +53,26 @@ describe('package entrypoints', () => {
     expect(css).toContain('.direactree');
     expect(css).toContain('@keyframes direactree-fade-in');
     expect(css).not.toMatch(/@keyframes\s+fadeIn\b/);
+    const layered = fs.readFileSync(path.join(root, 'dist', 'direactree.layer.css'), 'utf8');
+    expect(layered.startsWith('@layer direactree {')).toBe(true);
+    expect(layered).toContain('@keyframes direactree-fade-in');
+    expect(layered.trim().endsWith('}')).toBe(true);
     const license = fs.readFileSync(path.join(root, 'LICENSE'), 'utf8');
     expect(license).toContain('MIT License');
     expect(license).toContain('Copyright (c) 2025 Mert ULAS');
   });
 
+  it('keeps CSS out of the JavaScript bundles', () => {
+    for (const file of ['index.mjs', 'index.cjs', 'next.mjs', 'next.cjs']) {
+      const code = fs.readFileSync(path.join(root, 'dist', file), 'utf8');
+      expect(code).not.toContain('styleInject');
+      expect(code).not.toContain('--direactree-surface');
+    }
+  });
+
   it('keeps the use client directive on the Next entry files', () => {
-    expect(readFirstLine('dist/next.mjs')).toBe("'use client';");
-    expect(readFirstLine('dist/next.cjs')).toBe("'use client';");
+    expect(readFirstLine('dist/next.mjs')).toMatch(/^["']use client["'];/);
+    expect(readFirstLine('dist/next.cjs')).toMatch(/^["']use client["'];/);
   });
 
   it('resolves direactree/next with classic moduleResolution node', () => {

@@ -2,6 +2,7 @@ import React from 'react';
 import { ComponentMeta } from '@storybook/react';
 import Direactree from './index';
 import type { DireactreeTheme } from './DireactreeClient';
+import { ChevronIcon } from './icons';
 
 const themes: DireactreeTheme[] = ['light', 'dark', 'system'];
 const states = ['normal', 'hover', 'focus', 'selected', 'dragover', 'error'] as const;
@@ -26,18 +27,27 @@ function StateSample({ state }: { state: typeof states[number] }) {
     <div>
       <ul className="direactree-list" role="tree">
         <li
-          className={`direactree-item${selected ? ' direactree-item-selected' : ''}${dragover ? ' direactree-item-dragover' : ''}`}
-          role="treeitem"
+          className="direactree-item direactree-row"
+          role="none"
+          data-state="closed"
+          data-selected={selected ? '' : undefined}
+          data-drop-position={dragover ? 'inside' : undefined}
         >
-          <div
-            className={[
-              'direactree-item-container',
-              state === 'hover' ? 'direactree-force-hover' : '',
-              state === 'focus' ? 'direactree-force-focus' : '',
-            ].filter(Boolean).join(' ')}
-          >
-            <span className="direactree-item-button" aria-hidden="true">▸</span>
-            <span className="direactree-item-name">{state}</span>
+          <div className="direactree-item-anchor">
+            <div
+              role="treeitem"
+              aria-selected={selected}
+              className={[
+                'direactree-item-container',
+                state === 'hover' ? 'direactree-force-hover' : '',
+                state === 'focus' ? 'direactree-force-focus' : '',
+              ].filter(Boolean).join(' ')}
+            >
+              <span className="direactree-item-button" aria-hidden="true">
+                <ChevronIcon className="direactree-chevron" />
+              </span>
+              <span className="direactree-item-name">{state}</span>
+            </div>
           </div>
         </li>
       </ul>
