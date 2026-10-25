@@ -225,7 +225,8 @@ describe('Direactree', () => {
         id: '1',
         children: [expect.objectContaining({ id: '1.1' })],
       }),
-      expect.objectContaining({ id: '2' })
+      expect.objectContaining({ id: '2' }),
+      { position: 'inside', parentId: '2', index: 1 }
     );
   });
 
@@ -663,11 +664,13 @@ describe('Direactree', () => {
     expect(root.getAttribute('style')).toMatch(/margin-top:\s*4px/);
   });
 
-  it('keeps dark mode behind the system theme and drops unused tokens', () => {
+  it('writes each color once with light-dark() and drops unused tokens', () => {
     const css = fs.readFileSync(path.join(__dirname, 'styles.css'), 'utf8');
-    const darkMedia = css.match(/@media \(prefers-color-scheme: dark\)\s*\{([\s\S]*?)\n\}/);
-    expect(darkMedia?.[1]).toContain('[data-direactree-theme="system"]');
-    expect(darkMedia?.[1]).not.toMatch(/\.direactree\s*\{/);
+    // color-scheme on the root picks the light or dark half, so no duplicated dark block is needed.
+    expect(css).not.toContain('prefers-color-scheme');
+    expect(css).toMatch(/--direactree-selected:\s*light-dark\(/);
+    expect(css).toMatch(/\[data-direactree-theme="system"\]\s*\{[^}]*color-scheme:\s*light dark/);
+    expect(css).toMatch(/\[data-direactree-theme="dark"\]\s*\{[^}]*color-scheme:\s*dark/);
     expect(css).toContain('[data-direactree-theme="dark"]');
     expect(css).toContain('[data-direactree-theme="light"]');
     expect(css).toContain('prefers-reduced-motion');
@@ -695,6 +698,10 @@ describe('Direactree', () => {
     expect(css).not.toMatch(/\.direactree\s*\{[^}]*overflow-x:\s*auto/);
     expect(css).toContain('.direactree-cancel-button:hover');
     expect(css).not.toContain('button:last-of-type:hover');
+    expect(css).not.toContain(':first-of-type');
+    // Indent uses logical properties so right-to-left pages work.
+    expect(css).toMatch(/\.direactree-item-container\s*\{[^}]*padding-inline-start:\s*calc\(var\(--direactree-depth\)/);
+    expect(css).not.toMatch(/padding-left|margin-left/);
   });
 
   it('replaces built-in copy through the messages prop', () => {

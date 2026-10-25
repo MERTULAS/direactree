@@ -184,6 +184,8 @@ export function setChildren<T>(nodes: TreeNode<T>[], id: string, children: TreeN
 
 /**
  * Moves a node into the folder `targetId`, or to the root when `targetId` is `null`.
+ * `index` places it among the folder's children counted without the moved node,
+ * which also reorders a node inside its own folder.
  * Returns the input unchanged when the move is not possible.
  */
 export function moveNode<T>(
@@ -192,21 +194,81 @@ export function moveNode<T>(
   targetId: string | null,
   index?: number
 ): TreeNode<T>[] {
-  const source = findNode(nodes, sourceId);
-  if (!source) {
+  const location = locateNode(nodes, sourceId);
+  if (!location) {
     return nodes;
   }
-  if (targetId === null) {
-    if (index === undefined && nodes.some(node => node.id === sourceId)) {
+  const source = location.node;
+  const currentParentId = location.parent?.id ?? null;
+  if (targetId !== null) {
+    const target = findNode(nodes, targetId);
+    if (
+      !target
+      || target.type !== 'folder'
+      || target.id === sourceId
+      || (source.type === 'folder' && isDescendant(source, target.id))
+    ) {
       return nodes;
     }
-  } else {
-    const target = findNode(nodes, targetId);
-    if (!target || !isMoveable(source, target)) {
+  }
+  if (currentParentId === targetId) {
+    if (index === undefined) {
+      return nodes;
+    }
+    const without = location.siblings.length - 1;
+    if (Math.max(0, Math.min(index, without)) === location.index) {
       return nodes;
     }
   }
   return insertNode(removeNode(nodes, sourceId), targetId, source, index);
+}
+
+/**
+ * Where `source` lands when dropped at `position` relative to `target`.
+ * `null` when the drop would not change anything or is not possible.
+ */
+export function resolveDrop<T>(
+  nodes: TreeNode<T>[],
+  source: TreeNode<T>,
+  target: TreeNode<T>,
+  position: 'inside' | 'before' | 'after'
+): { parent: TreeNode<T> | null; parentId: string | null; index: number; siblings: TreeNode<T>[] } | null {
+  if (source.id === target.id) {
+    return null;
+  }
+  let parent: TreeNode<T> | null;
+  let siblings: TreeNode<T>[];
+  let index: number;
+  if (position === 'inside') {
+    if (target.type !== 'folder') {
+      return null;
+    }
+    parent = target;
+    siblings = (target.children ?? []).filter(child => child.id !== source.id);
+    index = siblings.length;
+  } else {
+    const location = locateNode(nodes, target.id);
+    if (!location) {
+      return null;
+    }
+    parent = location.parent;
+    siblings = location.siblings.filter(child => child.id !== source.id);
+    index = siblings.findIndex(child => child.id === target.id) + (position === 'after' ? 1 : 0);
+  }
+  if (parent && (parent.id === source.id || (source.type === 'folder' && isDescendant(source, parent.id)))) {
+    return null;
+  }
+  const parentId = parent ? parent.id : null;
+  const current = locateNode(nodes, source.id);
+  if (!current) {
+    return null;
+  }
+  const currentParentId = current.parent?.id ?? null;
+  // Dropping a node into the folder it already sits in does nothing.
+  if (currentParentId === parentId && (position === 'inside' || current.index === index)) {
+    return null;
+  }
+  return { parent, parentId, index, siblings };
 }
 
 /** Sorts the children of `parentId`, or the root list when `parentId` is `null`. */

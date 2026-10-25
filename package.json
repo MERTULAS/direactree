@@ -1,6 +1,6 @@
 {
   "name": "direactree",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "React UI component library for directory tree",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -32,7 +32,8 @@
       "require": "./dist/next.cjs",
       "import": "./dist/next.mjs"
     },
-    "./direactree.css": "./dist/direactree.css"
+    "./direactree.css": "./dist/direactree.css",
+    "./direactree.layer.css": "./dist/direactree.layer.css"
   },
   "files": [
     "dist",
@@ -74,6 +75,7 @@
     "@babel/preset-typescript": "^7.18.6",
     "@rollup/plugin-commonjs": "^22.0.1",
     "@rollup/plugin-node-resolve": "^13.3.0",
+    "@rollup/plugin-terser": "^0.4.4",
     "@storybook/addon-actions": "^6.5.9",
     "@storybook/addon-essentials": "^6.5.9",
     "@storybook/addon-interactions": "^6.5.9",
@@ -92,9 +94,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "rollup": "^2.77.0",
-    "rollup-plugin-css-only": "^4.5.2",
     "rollup-plugin-peer-deps-external": "^2.2.4",
-    "rollup-plugin-postcss": "^4.0.2",
     "rollup-plugin-typescript2": "^0.32.1",
     "typescript": "^4.7.4"
   }

@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.4.0
+
+### Breaking
+
+- **The stylesheet is no longer inserted by JavaScript.** Add `import 'direactree/direactree.css'` once (or `direactree/direactree.layer.css`). Without it the tree renders unstyled. This removes the duplicate styles that came from importing the file as well, and works under a strict Content-Security-Policy.
+- **New default look.** `appearance="plain"` is the default: no border or shadow, a background that follows the theme, compact toolbox, 28px rows, and selection across the whole row. Pass `appearance="card"` for a look close to 0.3.
+- `indent` is now the full space per level. In 0.3 each level added `indent + 8px`.
+- `onNodeMove` receives a third argument, `info: { position, parentId, index }`. Handlers that take two arguments keep working.
+- `toolboxActions` `onClick` and `disabled` receive the selected ids as a second argument.
+- Enter on a folder now opens or closes it, and calls `onNodeActivate`.
+- Styling moved to data attributes: `[data-selected]`, `[data-state="open"]`, `[data-drop-position]`, and others. The old classes (`direactree-item-selected`, `direactree-item-dragover`) are still set, but the built-in CSS no longer uses them.
+- Colors use CSS `light-dark()` (Chrome 123, Safari 17.5, Firefox 120 and later). The `prefers-color-scheme` media block is gone.
+
+### Added
+
+- `appearance` (`plain`, `card`) and `density` (`comfortable`, `compact`).
+- `classNames` adds classes to each part of the tree, for Tailwind and other utility CSS.
+- The `style` prop accepts `--direactree-*` tokens without a TypeScript cast (`DireactreeStyle`).
+- `direactree.layer.css`: the same rules inside `@layer direactree`, so any unlayered app CSS wins.
+- Row tokens: `--direactree-row-height`, `--direactree-font-size`, `--direactree-radius`, `--direactree-indent`, `--direactree-toolbox-button-size`, `--direactree-surface`, `--direactree-divider`, `--direactree-selected-fg`.
+- SVG toolbox and chevron icons that follow `currentColor`, replacing emoji and text arrows.
+- Right-to-left support: indent, guide lines, chevrons, and drop markers use logical properties.
+- `onNodeActivate(node, path)` on double click and Enter, for opening files.
+- `allowReorder` drops a node before or after a row, with a drop line. `resolveDrop` is exported, and `moveNode` reorders inside a folder when given an index.
+- `expandedIds`, `defaultExpandedIds`, and `onExpandedChange` for controlled open folders. `getExpandedIds()` on the ref handle.
+- `selectionMode="multiple"` with Ctrl/Cmd+click, Shift+click, Shift+arrows, Ctrl/Cmd+A, `selectedIds`, `onSelectionChange`, and `getSelectedIds()`.
+- Type-ahead: typing letters moves to the next matching row.
+
+### Changed
+
+- The bundle is minified and targets ES2018: 46 KB instead of 121 KB (15 KB gzipped). Source maps now map back to the TypeScript sources.
+- The component is split into smaller modules (`NameEditor`, `DeleteConfirm`, `ContextMenu`, `Toolbox`, `useVirtualWindow`, `useLazyChildren`).
+- A virtualized tree reads its row height from `--direactree-row-height` unless `rowHeight` is given.
+
 ## 0.3.0
 
 ### Added

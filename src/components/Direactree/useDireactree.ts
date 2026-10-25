@@ -1,5 +1,5 @@
 import React from 'react';
-import type { NodePath, SaveProps, TreeNode } from './types';
+import type { MoveInfo, NodePath, SaveProps, TreeNode } from './types';
 import {
   applySave,
   compareFoldersFirst,
@@ -38,8 +38,11 @@ export interface UseDireactreeResult<T = unknown> {
   save: (props: SaveProps, overrides?: SaveOverrides<T>) => void;
   /** Removes a node and its children. Matches `onDelete`. */
   remove: (node: NodeRef) => void;
-  /** Moves a node into a folder, or to the root with `null`. Matches `onNodeMove`. */
-  move: (node: NodeRef, target: NodeRef | null, index?: number) => void;
+  /**
+   * Moves a node into a folder, or to the root with `null`. Matches `onNodeMove`:
+   * the `MoveInfo` it passes places the node before or after a row.
+   */
+  move: (node: NodeRef, target: NodeRef | null, placement?: number | MoveInfo) => void;
   insert: (parentId: string | null, node: TreeNode<T>, index?: number) => void;
   update: (id: string, patch: Partial<TreeNode<T>> | ((node: TreeNode<T>) => TreeNode<T>)) => void;
   setChildren: (id: string, children: TreeNode<T>[]) => void;
@@ -101,9 +104,12 @@ export function useDireactree<T = unknown>(
     setStructure(prev => removeNode(prev, node.id));
   }, []);
 
-  const move = React.useCallback((node: NodeRef, target: NodeRef | null, index?: number) => {
+  const move = React.useCallback((node: NodeRef, target: NodeRef | null, placement?: number | MoveInfo) => {
     setStructure(prev => {
-      const targetId = target ? target.id : null;
+      // A `MoveInfo` from `onNodeMove` names the parent and index directly.
+      const info = typeof placement === 'object' && placement !== null ? placement : null;
+      const targetId = info ? info.parentId : (target ? target.id : null);
+      const index = info ? (info.position === 'inside' ? undefined : info.index) : placement as number | undefined;
       let next = moveNode(prev, node.id, targetId, index);
       const compare = resolveCompare(optionsRef.current.sort);
       if (compare && next !== prev && index === undefined) {

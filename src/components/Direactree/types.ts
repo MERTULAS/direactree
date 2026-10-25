@@ -41,7 +41,7 @@ export interface TreeNode<T = unknown> {
   children?: TreeNode<T>[];
   /**
    * Initial open state for a folder. Read only when the tree first mounts.
-   * Later open and closed state is kept by the component.
+   * Later open and closed state is kept by the component, or by `expandedIds`.
    * While `isAllExpanded` is true, every folder is shown open.
    */
   isExpanded?: boolean;
@@ -67,13 +67,51 @@ export interface ToolboxAction {
   /** Accessible name and tooltip. */
   label: string;
   icon: React.ReactNode;
-  disabled?: boolean | ((selectedNode: NodePath | null) => boolean);
-  onClick: (selectedNode: NodePath | null) => void;
+  disabled?: boolean | ((selectedNode: NodePath | null, selectedIds: string[]) => boolean);
+  onClick: (selectedNode: NodePath | null, selectedIds: string[]) => void;
 }
 
 export type DireactreeMutation = 'save' | 'delete' | 'move' | 'load';
 
 export type DireactreeTheme = 'system' | 'light' | 'dark';
+
+/** `plain` blends into the page. `card` adds the border, padding, and boxed toolbox. */
+export type DireactreeAppearance = 'plain' | 'card';
+
+/** Row height and font size. `comfortable` is 28px rows, `compact` 22px rows. */
+export type DireactreeDensity = 'comfortable' | 'compact';
+
+/** Parts of the tree that take an extra class through `classNames`. */
+export type DireactreeSlot =
+  | 'root'
+  | 'toolbox'
+  | 'toolboxButton'
+  | 'search'
+  | 'viewport'
+  | 'list'
+  | 'row'
+  | 'item'
+  | 'toggle'
+  | 'icon'
+  | 'label'
+  | 'badge'
+  | 'editor'
+  | 'menu'
+  | 'menuItem'
+  | 'confirm';
+
+/** CSS for the root, including any `--direactree-*` token, such as `{ '--direactree-bg': 'transparent' }`. */
+export type DireactreeStyle = React.CSSProperties & { [token: `--direactree-${string}`]: string | number | undefined };
+
+export type DropPosition = 'inside' | 'before' | 'after';
+
+/** Where a dropped node goes. `index` counts the new parent's children without the moved node. */
+export interface MoveInfo {
+  position: DropPosition;
+  /** The folder that will hold the node. `null` is the root. */
+  parentId: string | null;
+  index: number;
+}
 
 export interface DireactreeMessages {
   directoryTree: string;
@@ -167,10 +205,13 @@ export interface DireactreeHandle {
   select: (id: string | null) => void;
   /** Focuses the selected row, or the first row. */
   focus: () => void;
+  /** Ids of every selected node. In `single` mode this holds at most one id. */
+  getSelectedIds: () => string[];
+  getExpandedIds: () => string[];
 }
 
 export interface VirtualizedOptions {
-  /** Height of one row in pixels. Default `32`. */
+  /** Height of one row in pixels. Default: the density row height (28 or 22). */
   rowHeight?: number;
   /** Extra rows rendered above and below the visible area. Default `8`. */
   overscan?: number;
@@ -193,12 +234,19 @@ export interface LabelRenderState extends RowRenderState {
 
 export interface DireactreeProps<T = unknown> {
   className?: string;
+  /** Extra classes for parts of the tree. Works well with utility CSS. */
+  classNames?: Partial<Record<DireactreeSlot, string>>;
   /** `system` follows the OS color scheme. `light` and `dark` stay fixed. */
   theme?: DireactreeTheme;
-  /** Merged onto the root after the theme `color-scheme` value. */
-  style?: React.CSSProperties;
+  /** `plain` (default) has no border or padding. `card` adds them. */
+  appearance?: DireactreeAppearance;
+  /** `comfortable` (default) or `compact` rows. */
+  density?: DireactreeDensity;
+  /** Merged onto the root after the theme `color-scheme` value. Takes `--direactree-*` tokens without a cast. */
+  style?: DireactreeStyle;
   /** Controlled tree. The component never copies or mutates this list. */
   structure: TreeNode<T>[];
+  /** Pixels added per level. 8 to 50. Default `20`. */
   indent?: number;
   showToolbox?: boolean;
   toolboxIcons?: ToolboxIcons;
@@ -206,11 +254,18 @@ export interface DireactreeProps<T = unknown> {
   /** Extra buttons placed after the built-in toolbox buttons. */
   toolboxActions?: ToolboxAction[];
   allowDragAndDrop?: boolean;
+  /** Lets a drop land before or after a row, not only inside a folder. */
+  allowReorder?: boolean;
   /**
    * While true, every current and newly added folder is shown open.
    * Changing this from true to false closes every folder.
    */
   isAllExpanded?: boolean;
+  /** Controlled open folders. Use with `onExpandedChange`. */
+  expandedIds?: string[];
+  /** Open folders on the first render. `TreeNode.isExpanded` is used when this is missing. */
+  defaultExpandedIds?: string[];
+  onExpandedChange?: (expandedIds: string[]) => void;
   confirmDelete?: boolean;
   /** Partial copy overrides. Missing keys keep the English defaults. */
   messages?: Partial<DireactreeMessages>;
@@ -226,8 +281,14 @@ export interface DireactreeProps<T = unknown> {
   /** Permissions for a node, merged over `node.locked` and `node.permissions`. */
   getNodePermissions?: (node: TreeNode<T>, path: NodePath) => Partial<NodePermissions>;
 
+  /** `multiple` adds Ctrl/Cmd+click, Shift+click, Shift+arrows, and Ctrl/Cmd+A. Default `single`. */
+  selectionMode?: 'single' | 'multiple';
   /** Controlled selection. Leave it `undefined` to let the component keep selection. */
   selectedId?: string | null;
+  /** Controlled selection for `multiple` mode. */
+  selectedIds?: string[];
+  /** Called with every selected id in `multiple` mode. */
+  onSelectionChange?: (selectedIds: string[], nodes: NodePath[]) => void;
   /** Shows only matching nodes and their folders (`filter`), or every node with matches marked (`highlight`). */
   searchTerm?: string;
   searchMode?: 'filter' | 'highlight';
@@ -258,6 +319,8 @@ export interface DireactreeProps<T = unknown> {
    */
   onLoadChildren?: (node: TreeNode<T>) => void | Promise<unknown>;
 
+  /** A double click, or Enter on a row. Use it to open a file. */
+  onNodeActivate?: (node: TreeNode<T>, path: NodePath) => void;
   /**
    * Lifecycle notice that the create-folder editor opened.
    * The create request itself is sent from `onSave`.
@@ -278,8 +341,12 @@ export interface DireactreeProps<T = unknown> {
   /** Create or rename intent. Return a Promise to keep the editor pending until it settles. */
   onSave?: (props: SaveProps) => void | Promise<void>;
   onSelectedNodeChange?: (node: NodePath | null) => void;
-  /** Move intent. Return a Promise to keep the drop pending until it settles. The tree is not reordered here. */
-  onNodeMove?: (node: TreeNode<T>, target: TreeNode<T>) => void | Promise<void>;
+  /**
+   * Move intent. `target` is the folder for an `inside` drop, or the row the node lands
+   * next to for `before` and `after`. Return a Promise to keep the drop pending until it settles.
+   * The tree is not reordered here.
+   */
+  onNodeMove?: (node: TreeNode<T>, target: TreeNode<T>, info: MoveInfo) => void | Promise<void>;
   /** Called when a returned Promise from save, delete, move, or load rejects. */
   onActionError?: (error: unknown, action: DireactreeMutation) => void;
 }
